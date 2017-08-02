@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
  *
  * @author garricko
  */
-public class Main {
-  private static final Logger log = LoggerFactory.getLogger(Main.class);
+public class EtlCopyTableSample {
+  private static final Logger log = LoggerFactory.getLogger(EtlCopyTableSample.class);
 
   public static void main(String[] args) {
     log.info("Hello World! " + Arrays.asList(args));
