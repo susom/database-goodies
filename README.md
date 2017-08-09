@@ -1,5 +1,6 @@
 ## Database Goodies
 
-This project will include lots of different things built on top of
-the database library. Very little of it exists at this point. The
-main point of this is to keep the core database library fairly lean.
+[![Build Status](https://travis-ci.org/susom/database-goodies.svg?branch=master)](https://travis-ci.org/susom/database-goodies)
+
+This project includes a variety of different things built on top of
+the database library.
