@@ -10,7 +10,7 @@ the database library.
 * Some basic ETL capabilities for moving data around efficiently between databases
 * Database health checks for Vert.x based servers
 
-In the future I plan to add expand the ETL functionality, add reporting and analytics,
+In the future I plan to expand the ETL functionality, add reporting and analytics,
 and add an EAV model, among other things.
 
 ### Getting Started
