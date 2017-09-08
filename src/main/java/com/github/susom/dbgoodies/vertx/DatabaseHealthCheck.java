@@ -95,7 +95,7 @@ public class DatabaseHealthCheck {
         });
         MDC.clear();
       };
-      statusCheck.handle(vertx.setPeriodic(intervalSeconds * 1000, statusCheck));
+      vertx.runOnContext(h -> statusCheck.handle(vertx.setPeriodic(intervalSeconds * 1000, statusCheck)));
     }
   }
 
