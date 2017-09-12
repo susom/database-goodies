@@ -5,11 +5,11 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies)
 
 This project includes a variety of different things built on top of
-the database library.
+the [database library](https://github.com/susom/database).
 
 ### Features
 
-* Some basic ETL capabilities for moving data around efficiently between databases
+* Basic ETL capabilities for moving data around efficiently between databases
 * Database health checks for Vert.x based servers
 
 In the future I plan to expand the ETL functionality, add reporting and analytics,
