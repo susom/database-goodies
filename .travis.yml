@@ -6,9 +6,12 @@ addons:
 before_script:
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
+# Skip the default mvn command because we want to set the profile explicitly
+install: true
 script:
-  - mvn -e test
-  - mvn -e -Dpostgres.database.url=jdbc:postgresql:test -Dpostgres.database.user=test -Dpostgres.database.password=test -P postgresql test
+  - mvn -e -Ppackagecloud test
+  - mvn -e -Ppackagecloud -Dpostgres.database.url=jdbc:postgresql:test -Dpostgres.database.user=test -Dpostgres.database.password=test -P postgresql test
+  - cp .travis.settings.xml $HOME/.m2/settings.xml && mvn -e -Ppackagecloud -DskipTests deploy
 after_failure:
   - echo "\n=== SUREFIRE REPORTS ===\n"
   - for F in target/surefire-reports/*.txt; do echo $F; cat $F; echo; done
