@@ -241,6 +241,11 @@
       <version>2.3.2</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+     <groupId>org.apache.avro</groupId>
+     <artifactId>avro-tools</artifactId>
+     <version>1.8.2</version>
+    </dependency>
   </dependencies>
 
   <profiles>

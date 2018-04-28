@@ -16,14 +16,24 @@
 package com.github.susom.dbgoodies.etl;
 
 import com.github.susom.database.Database;
+import com.github.susom.database.Rows;
 import com.github.susom.database.Schema;
 import com.github.susom.database.Sql;
 import com.github.susom.database.SqlArgs;
 import com.github.susom.database.SqlSelect;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.sql.ResultSetMetaData;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import javax.annotation.CheckReturnValue;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,6 +173,129 @@ public final class Etl {
           alreadyLoggedTxWarning = true;
         }
       }
+    }
+  }
+
+  public static class SaveAsAvro {
+    private final String path;
+    private final SqlSelect select;
+    private final String tableName;
+    private int batchSize = 100000;
+
+    SaveAsAvro(String path, String tableName, SqlSelect select) {
+      this.path = path;
+      this.tableName = tableName;
+      this.select = select;
+    }
+
+    private void updateAvroRecord(GenericRecord record, final int type, Rows rs, String colName) {
+      switch (type) {
+        case Types.SMALLINT:
+        case Types.INTEGER:
+        case Types.NUMERIC:
+          record.put(colName, rs.getIntegerOrNull(colName));
+          break;
+        case Types.BIGINT:
+          record.put(colName, rs.getLongOrNull(colName));
+          break;
+        case Types.REAL:
+        case 100:
+          record.put(colName, rs.getFloatOrNull(colName));
+          break;
+        case Types.DOUBLE:
+        case 101:
+          record.put(colName, rs.getDoubleOrNull(colName));
+          break;
+        case Types.BINARY:
+        case Types.VARBINARY:
+        case Types.BLOB:
+          record.put(colName, rs.getBlobBytesOrNull(colName));
+          break;
+        case Types.CLOB:
+        case Types.NCLOB:
+          record.put(colName, rs.getClobStringOrEmpty(colName));
+          break;
+        case Types.TIMESTAMP:
+          record.put(colName, rs.getDateOrNull(colName));
+          break;
+        case Types.NVARCHAR:
+        case Types.VARCHAR:
+        case Types.CHAR:
+        case Types.NCHAR:
+          record.put(colName, rs.getStringOrNull(colName));
+          break;
+        default:
+          record.put(colName, null);
+      }
+    }
+
+    /**
+     * Actually begin the writing AVRO file.
+     */
+    public void start() {
+      select.fetchSize(batchSize).query(rs -> {
+
+        /* initialize susom database library elements */
+        String[] names = null;
+        ResultSetMetaData rsMeta = null;
+        int type = -1;
+
+        /* initialize apache AVRO library elements */
+        String avroSchemaText = null;
+        org.apache.avro.Schema schema = null;
+        GenericRecord record = null;
+        DatumWriter<GenericRecord> datumWriter = null;
+        DataFileWriter<GenericRecord> dataFileWriter = null;
+        AvroSchema avroSchema = null;
+
+        /* initialize jaxson (json) library elements */
+        ObjectMapper mapper = new ObjectMapper();
+        while (rs.next()) {
+          if (rsMeta == null) {
+            /* Get table metadata */
+            rsMeta = rs.getMetadata();
+
+            /* Get column names */
+            names = rs.getColumnLabels();
+
+            /* define AVRO schema object */
+            avroSchema = AvroSchema.getInstance();
+            avroSchema.setName(tableName);
+
+            /* Iterate through columns and add AVRO schema to object */
+            for (int i = 0; i < names.length; i++) {
+              AvroRecord recordJson = AvroRecord.getIntance();
+              recordJson.setName(names[i]);
+              type = rsMeta.getColumnType(i + 1);
+              recordJson.setType(AvroRecord.getType(type));
+              avroSchema.getFields().add(recordJson);
+            }
+            /* create avro json schema string */
+            avroSchemaText = mapper.writeValueAsString(avroSchema);
+
+            /* define AVRO schema */
+            schema = new org.apache.avro.Schema.Parser().parse(avroSchemaText);
+            log.debug("AvroSchema for table '%s': %s", tableName, avroSchemaText);
+
+            /* add AVRO schema to records and avro file */
+            datumWriter = new GenericDatumWriter<GenericRecord>(schema);
+            dataFileWriter = new DataFileWriter<GenericRecord>(datumWriter);
+            dataFileWriter.create(schema, new File(path));
+          }
+
+          record = new GenericData.Record(schema);
+          for (int i = 0; i < names.length; i++) {
+            type = rsMeta.getColumnType(i + 1);
+            /* Put the values into the avro record */
+            updateAvroRecord(record, type, rs, names[i]);
+          }
+          /* Append record to avro file */
+          dataFileWriter.append(record);
+        }
+
+        dataFileWriter.close();
+        return null;
+      });
     }
   }
 }
