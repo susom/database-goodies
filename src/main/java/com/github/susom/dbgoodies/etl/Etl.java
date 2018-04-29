@@ -194,6 +194,9 @@ public final class Etl {
 
     private void updateAvroRecord(GenericRecord record, final int type, Rows rs, String colName) {
       switch (type) {
+        case Types.BOOLEAN:
+          record.put(colName, Boolean.parseBoolean(rs.getStringOrNull(colName)));
+          break;
         case Types.SMALLINT:
         case Types.INTEGER:
         case Types.NUMERIC:
@@ -229,7 +232,7 @@ public final class Etl {
           record.put(colName, rs.getStringOrNull(colName));
           break;
         default:
-          record.put(colName, null);
+          record.put(colName, rs.getStringOrNull(colName));
       }
     }
 
@@ -271,7 +274,7 @@ public final class Etl {
               AvroRecord recordJson = AvroRecord.getIntance();
               recordJson.setName(names[i]);
               type = rsMeta.getColumnType(i + 1);
-              recordJson.setType(AvroRecord.getType(type));
+              recordJson.getType().add(AvroRecord.getType(type));
               avroSchema.getFields().add(recordJson);
             }
             /* create avro json schema string */

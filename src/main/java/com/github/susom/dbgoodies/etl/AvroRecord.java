@@ -16,6 +16,7 @@
 package com.github.susom.dbgoodies.etl;
 
 import java.sql.Types;
+import java.util.ArrayList;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -24,7 +25,11 @@ public class AvroRecord {
   private String name;
 
   @JsonProperty("type")
-  private String type;
+  private ArrayList<String> type = new ArrayList<>();
+  
+  public AvroRecord() {
+    type.add("null");
+  }
 
   public String getName() {
     return name;
@@ -34,11 +39,11 @@ public class AvroRecord {
     this.name = name;
   }
 
-  public String getType() {
+  public ArrayList<String> getType() {
     return type;
   }
 
-  public void setType(String type) {
+  public void setType(ArrayList<String> type) {
     this.type = type;
   }
 
@@ -48,6 +53,8 @@ public class AvroRecord {
 
   public static String getType(final int avroType) {
     switch (avroType) {
+      case Types.BOOLEAN:
+        return "boolean";
       case Types.SMALLINT:
       case Types.INTEGER:
       case Types.NUMERIC:
