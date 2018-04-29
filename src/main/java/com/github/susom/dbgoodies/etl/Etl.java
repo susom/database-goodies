@@ -64,6 +64,10 @@ public final class Etl {
       return new SaveAsTable(destination, tableName, select);
     }
 
+    @CheckReturnValue
+    public SaveAsAvro asAvro(String path, String tableName) {
+      return new SaveAsAvro(path, tableName, select);
+    }
     // asCsv(), asTsv(), asExcel(), asJson(), asXml(), ...
   }
 
