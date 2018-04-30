@@ -185,6 +185,7 @@ public final class Etl {
     private final SqlSelect select;
     private final String tableName;
     private int batchSize = 100000;
+    private final int TYPE_NONE = -99;
 
     SaveAsAvro(String path, String tableName, SqlSelect select) {
       this.path = path;
@@ -245,7 +246,7 @@ public final class Etl {
         /* initialize susom database library elements */
         String[] names = null;
         ResultSetMetaData rsMeta = null;
-        int type = -1;
+        int type = TYPE_NONE;
 
         /* initialize apache AVRO library elements */
         String avroSchemaText = null;

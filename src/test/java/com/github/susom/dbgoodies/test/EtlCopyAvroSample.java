@@ -16,32 +16,37 @@ import com.github.susom.dbgoodies.etl.Etl;
 
 /**
  * 
- * @author Bhaskar
+ * @author Biarca.inc
  *
  */
 public class EtlCopyAvroSample {
 
-  private static final String databaseDriver = "org.hsqldb.jdbcDriver";
-  private static final String databaseURL = "jdbc:hsqldb:hsql://localhost/testdb";
-  private static final String databaseUser = "sa";
-  private static final String databasePassword = "";
+  private static final String DatabaseURL = "jdbc:hsqldb:hsql://localhost/testdb";
   
   /* Test data constants */
-  private static final String QUERY = "select ID, FIRSTNAME, LASTNAME, SALARY from EMPLOYEE";
-  private static final String AVRO_FILE = "Employee.avro";
-  private static final String TABLE = "EMPLOYEE";
+  private static final String HOME_DIR = "user.home";
+  private static final String CUR_DIR = ".";
+  private static final String QUERY = "select * from user_details";
+  private static final String AVRO_FILE = "/user_details.avro";
+  private static final String TABLE = "user_details";
 
   public static void main(String[] args) throws Exception {
-    Provider sampleProject = Provider.getInstance();
-    sampleProject.setupJdbc(EtlCopyAvroSample.databaseURL);
+    String homeDir = null;
+    Provider hsqlProvider = Provider.getInstance();
+    hsqlProvider.setupJdbc(DatabaseURL);
     
-    Database sampleHsqlDb = sampleProject.getDatabase();
+    Database sampleHsqlDb = hsqlProvider.getDatabase();
     SqlSelect sqlSelectObject = sampleHsqlDb.toSelect(QUERY);
 
+    homeDir = System.getProperty(HOME_DIR);
+    StringBuilder fileName = new StringBuilder((homeDir != null) ? homeDir: CUR_DIR);
+    fileName.append(AVRO_FILE);
+    
     Etl.Save hsqlData = Etl.saveQuery(sqlSelectObject);
-    Etl.SaveAsAvro avro = hsqlData.asAvro(AVRO_FILE, TABLE);
+    Etl.SaveAsAvro avro = hsqlData.asAvro(fileName.toString(), TABLE);
     avro.start();
 
-    sampleProject.closeJdbc();
+    hsqlProvider.closeJdbc();
+    fileName = null;
   }
 }

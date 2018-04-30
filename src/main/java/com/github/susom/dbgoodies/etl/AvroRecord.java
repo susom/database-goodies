@@ -20,6 +20,11 @@ import java.util.ArrayList;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * 
+ * @author Biarca.inc
+ *
+ */
 public class AvroRecord {
   @JsonProperty("name")
   private String name;

@@ -19,10 +19,22 @@ import java.util.ArrayList;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * 
+ * @author Biarca.inc
+ *
+ */
 public class AvroSchema {
+  /**
+   * namespace:a string that qualifies the name
+   */
   @JsonProperty("namespace")
-  private String namespace = "com.github.susom.dbgoodies.etl";
+  private String namespace = "etl.avro";
 
+  /**
+   * name: a string providing the name of the record, i.e generally table row
+   *   mapped to the record object (or java beans)
+   */
   @JsonProperty("name")
   private String name;
 
