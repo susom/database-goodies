@@ -29,6 +29,7 @@ public class EtlCopyAvroSample {
   private static final String QUERY = "select * from user_details";
   private static final String AVRO_FILE = "/user_details.avro";
   private static final String TABLE = "user_details";
+  private static final boolean iaAppend = true;
 
   public static void main(String[] args) throws Exception {
     String homeDir = null;
@@ -43,7 +44,7 @@ public class EtlCopyAvroSample {
     fileName.append(AVRO_FILE);
     
     Etl.Save hsqlData = Etl.saveQuery(sqlSelectObject);
-    Etl.SaveAsAvro avro = hsqlData.asAvro(fileName.toString(), TABLE);
+    Etl.SaveAsAvro avro = hsqlData.asAvro(fileName.toString(), TABLE, iaAppend);
     avro.start();
 
     hsqlProvider.closeJdbc();
