@@ -1,28 +1,40 @@
 ## Database Goodies
 
-[![Build Status](https://travis-ci.org/susom/database-goodies.svg?branch=master)](https://travis-ci.org/susom/database-goodies)
-[![Dependency Status](https://www.versioneye.com/user/projects/59b6f5d2368b080014d25d5f/badge.svg?style=flat)](https://www.versioneye.com/user/projects/59b6f5d2368b080014d25d5f)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies)
-
-This project includes a variety of different things built on top of
-the [database library](https://github.com/susom/database).
+This is extension of project [database-goodies](https://github.com/susom/database-goodies).
 
 ### Features
 
-* Basic ETL capabilities for moving data around efficiently between databases
-* Database health checks for Vert.x based servers
+* Added functionality to convert database tables to AVRO file format
 
-In the future I plan to expand the ETL functionality, add reporting and analytics,
-and add an EAV model, among other things.
 
 ### Getting Started
 
-The library is available in the public Maven repository:
+Initialise the database that you want to convert into AVRO file:
 
 ```
-<dependency>
-  <groupId>com.github.susom</groupId>
-  <artifactId>database-goodies</artifactId>
-  <version>1.0</version>
-</dependency>
+Database db = DatabaseProvider.fromDriverManager("jdbc:hsqldb:hsql://localhost/testdb").create().get();
+
+```
+
+Write the sql "select" statement with columns you are interested or simply write "*" for entire column selection:
+
+```
+SqlSelect sqlSelectObject = db.toSelect("select * from user_details");
+
+```
+
+Inject the "select" object to the ETL interface
+
+```
+Etl.Save hsqlData = Etl.saveQuery(sqlSelectObject);
+
+```
+
+Pass on the target file name with path and table name and execute:
+
+```
+
+Etl.SaveAsAvro avro = hsqlData.asAvro("user_details.avro", "user_details");
+avro.start();
+
 ```
