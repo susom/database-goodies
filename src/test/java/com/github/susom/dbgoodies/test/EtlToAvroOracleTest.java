@@ -20,15 +20,15 @@ import com.github.susom.database.DatabaseProvider;
 import com.github.susom.database.OptionsOverride;
 
 /**
- * Unit tests to verify saving query results to Avro works correctly for PostgreSQL database.
+ * Unit tests to verify saving query results to Avro works correctly for Oracle database.
  */
-public class EtlToAvroPostgreSqlTest extends EtlToAvroTest {
+public class EtlToAvroOracleTest extends EtlToAvroTest {
   DatabaseProvider createDatabaseProvider(OptionsOverride options) {
     return DatabaseProvider.fromDriverManager(ConfigFrom.firstOf()
         .systemProperties()
         .defaultPropertyFiles()
         .excludePrefix("database.")
-        .removePrefix("postgres.").get()
+        .removePrefix("oracle.").get()
     ).withOptions(options).withSqlParameterLogging().withSqlInExceptionMessages().create();
   }
 }
