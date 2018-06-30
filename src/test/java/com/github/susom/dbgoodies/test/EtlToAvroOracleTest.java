@@ -18,17 +18,31 @@ package com.github.susom.dbgoodies.test;
 import com.github.susom.database.ConfigFrom;
 import com.github.susom.database.DatabaseProvider;
 import com.github.susom.database.OptionsOverride;
+import com.github.susom.dbgoodies.etl.Etl;
+import java.math.BigDecimal;
+import org.junit.Test;
 
 /**
- * Unit tests to verify saving query results to Avro works correctly for PostgreSQL database.
+ * Unit tests to verify saving query results to Avro works correctly for Oracle database.
  */
-public class EtlToAvroPostgreSqlTest extends EtlToAvroTest {
+public class EtlToAvroOracleTest extends EtlToAvroTest {
   DatabaseProvider createDatabaseProvider(OptionsOverride options) {
     return DatabaseProvider.fromDriverManager(ConfigFrom.firstOf()
         .systemProperties()
         .defaultPropertyFiles()
         .excludePrefix("database.")
-        .removePrefix("postgres.").get()
+        .removePrefix("oracle.").get()
     ).withOptions(options).withSqlParameterLogging().withSqlInExceptionMessages().create();
+  }
+
+  @Test
+  public void float126() {
+    db.ddl("create table dbtest (nbr_float FLOAT(126))").execute();
+
+    db.toInsert("insert into dbtest values (?)").argBigDecimal(new BigDecimal("123.4567")).insert(1);
+
+    Etl.saveQuery(db.toSelect("select * from dbtest")).asAvro("target/dbtest_float126.avro", null, "dbtest").start();
+
+    // TODO read the avro back in and check it
   }
 }

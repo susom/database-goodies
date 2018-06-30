@@ -35,7 +35,7 @@ import org.junit.Test;
  */
 public abstract class EtlToAvroTest {
   private DatabaseProvider dbp;
-  private Database db;
+  protected Database db;
   private Date now = new Date();
 
   @Before
