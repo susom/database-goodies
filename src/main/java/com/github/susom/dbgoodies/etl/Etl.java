@@ -216,7 +216,7 @@ public final class Etl {
             if (builder == null) {
               builder = new Builder(schemaName, tableName, rs);
               writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
-                  //.setCodec(CodecFactory.nullCodec())
+//                  .setCodec(CodecFactory.nullCodec())
                   .create(builder.schema(), new File(filename));
               log.debug("Using schema: \n" + builder.schema().toString(true));
             }
@@ -257,8 +257,7 @@ public final class Etl {
       this.schemaName = schemaName;
       this.tableName = tableName;
 
-      try
-      {
+      try {
         ResultSetMetaData metadata = r.getMetadata();
         int columnCount = metadata.getColumnCount();
         names = new String[columnCount];
@@ -328,54 +327,49 @@ public final class Etl {
                 null, Field.NULL_VALUE));
             break;
           case Types.NUMERIC:
-              //These are the columns with NUMBER and FLOAT data types in Oracle
-              //Specific data types are:
-              //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side and
-              //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side
-              //For pediatric side -->
-              //  PRECISION = 0; SCALE = -127 for NUMBER
-              //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-              //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-              //For adult side -->
-              //  PRECISION = 0; SCALE = -127 for NUMBER
-              //  PRECISION = 18; SCALE = 0 for NUMBER(18)
-              //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-              //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
-              //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
-              //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-              //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
-              if (precision[i] == 0 && scale[i] == -127)
-              {
-                //NUMBER data type in Oracle
-                //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
-                //Integer in java is 4 bytes / 32 bits
-                //Long in Java is 8 bytes / 64 bits
-                fields.add(new org.apache.avro.Schema.Field(names[i],
-                  //org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.INT)),
-                  org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
-                  null, Field.NULL_VALUE));
-              }
-              else if (precision[i] != 0 && scale[i] == 0)
-              {
-                //NUMBER(18), NUMBER(38) data types in Oracle
-                //Long in Java is 8 bytes / 64 bits
-                fields.add(new org.apache.avro.Schema.Field(names[i],
-                  org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
-                  null, Field.NULL_VALUE));
-              }
-              else if (precision[i] != 0 && scale[i] != 0)
-              {
-                //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
-                //org.apache.avro.Schema bytes = org.apache.avro.Schema.create(Type.BYTES);
-                //bytes.addProp("logical_type", "decimal");
-                //bytes.addProp("precision", precision[i]); //38 or 12 or 18
-                //bytes.addProp("scale", scale[i]); //9 or 2
-                //Setting the above in an alternate way
-                org.apache.avro.Schema bytes = LogicalTypes.decimal(precision[i], scale[i]).addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES));
-                fields.add(new org.apache.avro.Schema.Field(names[i],
-                  org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), bytes),
-                  null, Field.NULL_VALUE));
-              }
+            //These are the columns with NUMBER and FLOAT data types in Oracle
+            //Specific data types are:
+            //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side and
+            //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side
+            //For pediatric side -->
+            //  PRECISION = 0; SCALE = -127 for NUMBER
+            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+            //For adult side -->
+            //  PRECISION = 0; SCALE = -127 for NUMBER
+            //  PRECISION = 18; SCALE = 0 for NUMBER(18)
+            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+            //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
+            //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
+            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+            //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
+            if (precision[i] == 0 && scale[i] == -127) {
+              //NUMBER data type in Oracle
+              //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
+              //Integer in java is 4 bytes / 32 bits
+              //Long in Java is 8 bytes / 64 bits
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                //org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.INT)),
+                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
+                null, Field.NULL_VALUE));
+            } else if (precision[i] != 0 && scale[i] == 0) {
+              //NUMBER(18), NUMBER(38) data types in Oracle
+              //Long in Java is 8 bytes / 64 bits
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
+                null, Field.NULL_VALUE));
+            } else if (precision[i] != 0 && scale[i] != 0) {
+              //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
+              //org.apache.avro.Schema bytes = org.apache.avro.Schema.create(Type.BYTES);
+              //bytes.addProp("logical_type", "decimal");
+              //bytes.addProp("precision", precision[i]); //38 or 12 or 18
+              //bytes.addProp("scale", scale[i]); //9 or 2
+              //Setting the above in an alternate way
+              org.apache.avro.Schema bytes = LogicalTypes.decimal(precision[i], scale[i]).addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES));
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), bytes),
+                null, Field.NULL_VALUE));
+            }
             break;
           case Types.BINARY:
           case Types.VARBINARY:
@@ -447,60 +441,45 @@ public final class Etl {
           record.put(names[i], r.getDoubleOrNull());
           break;
         case Types.NUMERIC:
-            //These are the columns with NUMBER and FLOAT data types in Oracle
-            //Specific data types are:
-            //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side
-            //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side and
-            //For pediatric side -->
-            //  PRECISION = 0; SCALE = -127 for NUMBER
-            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-            //For adult side -->
-            //  PRECISION = 0; SCALE = -127 for NUMBER
-            //  PRECISION = 18; SCALE = 0 for NUMBER(18)
-            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-            //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
-            //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
-            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-            //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
-            if (precision[i] == 0 && scale[i] == -127)
-            {
-              //NUMBER data type in Oracle
-              //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
-              //Integer in java is 4 bytes / 32 bits
-              //Long in Java is 8 bytes / 64 bits
-              //record.put(names[i], r.getIntegerOrNull());
-              record.put(names[i], r.getLongOrNull());
+          //These are the columns with NUMBER and FLOAT data types in Oracle
+          //Specific data types are:
+          //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side
+          //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side and
+          //For pediatric side -->
+          //  PRECISION = 0; SCALE = -127 for NUMBER
+          //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+          //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+          //For adult side -->
+          //  PRECISION = 0; SCALE = -127 for NUMBER
+          //  PRECISION = 18; SCALE = 0 for NUMBER(18)
+          //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+          //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
+          //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
+          //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+          //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
+          if (precision[i] == 0 && scale[i] == -127) {
+            //NUMBER data type in Oracle
+            //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
+            //Integer in java is 4 bytes / 32 bits
+            //Long in Java is 8 bytes / 64 bits
+            //record.put(names[i], r.getIntegerOrNull());
+            record.put(names[i], r.getLongOrNull());
+          } else if (precision[i] != 0 && scale[i] == 0) {
+            //NUMBER(18), NUMBER(38) data types in Oracle
+            //Long in Java is 8 bytes / 64 bits
+            record.put(names[i], r.getLongOrNull());
+          } else if (precision[i] != 0 && scale[i] != 0) {
+            //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
+            //Use a BigDecimal in Java for these types of columns
+            BigDecimal bigDecimalOrNull = r.getBigDecimalOrNull();
+            if (bigDecimalOrNull == null) {
+              record.put(names[i], null);
+            } else {
+              //Use either RoundingMode.DOWN or RoundingMode.FLOOR to truncate a BigDecimal without rounding
+              bigDecimalOrNull = bigDecimalOrNull.setScale(scale[i], RoundingMode.DOWN);
+              record.put(names[i], ByteBuffer.wrap(bigDecimalOrNull.unscaledValue().toByteArray()));
             }
-            else if (precision[i] != 0 && scale[i] == 0)
-            {
-              //NUMBER(18), NUMBER(38) data types in Oracle
-              //Long in Java is 8 bytes / 64 bits
-              record.put(names[i], r.getLongOrNull());
-            }
-            else if (precision[i] != 0 && scale[i] != 0)
-            {
-              //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
-              //Use a BigDecimal in Java for these types of columns
-              BigDecimal bigDecimalOrNull = r.getBigDecimalOrNull();
-              if (bigDecimalOrNull == null)
-              {
-                record.put(names[i], null);
-              }
-              else
-              {
-                //Use either RoundingMode.DOWN or RoundingMode.FLOOR to truncate a BigDecimal without rounding
-                /*
-                log.warn("precision[" + i + "] = " + precision[i]  + "; scale[" + i + "] = " + scale[i]
-                  + ";\n bigDecimalOrNull.precision() = " + bigDecimalOrNull.precision() + "; bigDecimalOrNull.scale() = " + bigDecimalOrNull.scale()
-                  + ";\n value = " + bigDecimalOrNull + "; rounded to = " + bigDecimalOrNull.setScale(scale[i], RoundingMode.DOWN));
-                */
-
-                BigDecimal roundedValue = bigDecimalOrNull.setScale(scale[i], RoundingMode.DOWN);
-                bigDecimalOrNull = roundedValue;
-                record.put(names[i], ByteBuffer.wrap(bigDecimalOrNull.unscaledValue().toByteArray()));
-              }
-            }
+          }
           break;
         case Types.BINARY:
         case Types.VARBINARY:
