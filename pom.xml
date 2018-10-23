@@ -25,6 +25,12 @@
       <organization>Stanford Medicine</organization>
       <organizationUrl>https://med.stanford.edu</organizationUrl>
     </developer>
+    <developer>
+      <name>Wencheng Li</name>
+      <email>wencheng@stanford.edu</email>
+      <organization>Stanford Medicine</organization>
+      <organizationUrl>https://med.stanford.edu</organizationUrl>
+    </developer>
   </developers>
 
   <scm>
@@ -271,6 +277,17 @@
      <groupId>org.apache.avro</groupId>
      <artifactId>avro</artifactId>
      <version>1.8.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-bigquery</artifactId>
+      <version>1.49.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.oracle</groupId>
+      <artifactId>ojdbc7</artifactId>
+      <version>12.1.0.2</version>
+      <!--<scope>runtime</scope>-->
     </dependency>
   </dependencies>
 

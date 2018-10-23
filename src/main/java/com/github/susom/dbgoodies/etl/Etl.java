@@ -29,9 +29,8 @@ import java.math.RoundingMode;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -50,6 +49,7 @@ import org.apache.avro.LogicalTypes;
  *
  * @author garricko
  * @author dbalraj
+ * @author wencheng
  */
 public final class Etl {
   private static final Logger log = LoggerFactory.getLogger(Etl.class);
@@ -76,6 +76,11 @@ public final class Etl {
     @CheckReturnValue
     public SaveAsAvro asAvro(String path, String schemaName, String tableName) {
       return new SaveAsAvro(path, schemaName, tableName, select);
+    }
+
+    @CheckReturnValue
+    public SaveAsBigQuery asBigQuery(String projectId, String datasetName, String tableName, String entryIdFields) {
+      return new SaveAsBigQuery(projectId, datasetName, tableName, entryIdFields, select);
     }
     // asCsv(), asTsv(), asExcel(), asJson(), asXml(), ...
   }
@@ -243,6 +248,73 @@ public final class Etl {
       return this;
     }
   }
+
+
+    /**
+     * BigQuery support.
+     * by Wencheng
+     */
+  public static class SaveAsBigQuery {
+    private final String projectId;
+    private final String datasetName;
+    private final String tableName;
+    private final String entryIdFields;
+    private final SqlSelect select;
+    private int fetchSize = 100000;
+
+
+    SaveAsBigQuery(String projectId, String datasetName, String tableName, String entryIdFields, SqlSelect select) {
+      this.projectId = projectId;
+      this.datasetName = datasetName;
+      this.tableName = tableName;
+      this.entryIdFields = entryIdFields;
+      this.select = select;
+    }
+
+    /**
+     *  create a BigQueryWriter and hook up with Database select callback. when query finish, signal writer to turn off workers
+     *
+     *  the writer uses BigQuery stream api, which requires unique object id for each row. EntryIdFields is important, you should use primary key field list for this. BigQueryWriter will take this comma separated string input and compute object id for each row when upload to BigQuery
+     *
+     *  requres Google Client Credential file properly set up in env
+     */
+    public void start() throws Exception {
+        Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
+        if(!google_credential_file.isPresent()){
+            log.error("Can not get google api credential file from environment variable GOOGLE_APPLICATION_CREDENTIALS ");
+            System.exit(1);
+        }
+
+        Map<String,String> labels= new HashMap<>();
+        labels.put("job","testing");
+        BigQueryWriter<Row> bqWriter = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
+                .withBigqueryProjectId(this.projectId)
+                .withDataset(this.datasetName)
+                .withTableName(this.tableName)
+                .withEntryIdFields(this.entryIdFields.split(","))
+                .withUploadBatchSize(500)
+                .withUploadThread(1)
+                .withBigQueryCredentialFile(google_credential_file.get())
+                .withLabels(labels)
+                .build();
+
+        CountDownLatch readerCompletedSignal = new CountDownLatch(1);
+        bqWriter.setupWriter(readerCompletedSignal);
+        select.fetchSize(fetchSize).query(bqWriter.databaseRowsHandler());
+        readerCompletedSignal.countDown();
+    }
+
+    /**
+     * configure database fetch size
+     */
+    @CheckReturnValue
+    SaveAsBigQuery fetchSize(int nbrRows) {
+      fetchSize = nbrRows;
+      return this;
+    }
+  }
+
+
 
   private static class Builder {
     private String[] names;
