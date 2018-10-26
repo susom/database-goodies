@@ -356,7 +356,7 @@ public class BigQueryWriter<T> {
 
             if (bgSchema == null) {
               setBqSchemaFromDbRow(rs);
-              if (bqSchemaReady.getCount()!=0l) {
+              if (bqSchemaReady.getCount()!=0L) {
 //                createBqTableFromDbRow(rs);
                 prepareBqTableSchemaFromDbRow(rs);
                 uploadQueue.add( new ArrayList<InsertAllRequest.RowToInsert>() ); //signal worker to create/check schema
@@ -508,7 +508,7 @@ public class BigQueryWriter<T> {
                                 Thread.sleep((long)waitFor*1000);
                             }else {
                                 log.info("retry after 5 minutes");
-                                Thread.sleep(300000l);
+                                Thread.sleep(300000L);
                             }
                             if(retryCount==maxTry-1){
                                 uploadQueue.add(payload);

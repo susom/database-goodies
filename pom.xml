@@ -140,6 +140,8 @@
             <exclude>**/*SqlServer*</exclude>
             <!-- Separate profile to test HyperSQL Database: mvn -Phsqldb test -->
             <exclude>**/*Hsqldb*</exclude>
+            <!-- TODO: Separate profile for GCP-library tests -->
+            <exclude>**/*BigQuery*</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -283,12 +285,7 @@
       <artifactId>google-cloud-bigquery</artifactId>
       <version>1.49.0</version>
     </dependency>
-    <dependency>
-      <groupId>com.oracle</groupId>
-      <artifactId>ojdbc7</artifactId>
-      <version>12.1.0.2</version>
-      <!--<scope>runtime</scope>-->
-    </dependency>
+
   </dependencies>
 
   <profiles>
