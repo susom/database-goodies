@@ -7,6 +7,7 @@ import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.Schema;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,7 @@ public class BigQueryWriter<T> {
   private volatile CountDownLatch readerCompletedSignal;
 
   private String bigqueryProjectId;
+  private String googleCredentialFile;
 
   private volatile CountDownLatch bqSchemaReady;
 
@@ -59,7 +61,6 @@ public class BigQueryWriter<T> {
   private Map<String,String> labels;
 
   private int uploadThread;
-
 
   private AtomicLong totalCnt = new AtomicLong();
 
@@ -447,13 +448,19 @@ public class BigQueryWriter<T> {
           public void run() {
               try {
 
-                  log.info("start worker"+Thread.currentThread().getName());
+                log.info("start worker"+Thread.currentThread().getName());
+
                 BigQueryOptions.Builder optionsBuilder = BigQueryOptions.newBuilder();
+                optionsBuilder.setProjectId(bigqueryProjectId);
 
-                BigQueryOptions bigqueryOpt =
-                  optionsBuilder.setProjectId(bigqueryProjectId).build();
+                if (googleCredentialFile != null) {
+                  optionsBuilder.setCredentials(getGoogleCredential(googleCredentialFile,
+                          Lists.newArrayList("https://www.googleapis.com/auth/bigquery")));
+                }
 
-                  BigQuery bigquery= bigqueryOpt.getService();
+                BigQueryOptions bigqueryOpt = optionsBuilder.build();
+
+                BigQuery bigquery= bigqueryOpt.getService();
 
                   Table table = null;
 
@@ -580,6 +587,11 @@ public class BigQueryWriter<T> {
       return this;
     }
 
+    public BigQueryWriterBuilder withBigQueryCredentialFile(String googleCredentialFile) {
+      this.googleCredentialFile = googleCredentialFile;
+      return this;
+    }
+
     public BigQueryWriterBuilder withLabels(Map<String,String> labels){
       this.labels = labels;
       return this;
@@ -589,6 +601,7 @@ public class BigQueryWriter<T> {
       BigQueryWriter<Row> bigQueryWriter = new BigQueryWriter<>();
       bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.dataset = this.dataset;
+      bigQueryWriter.googleCredentialFile = this.googleCredentialFile;
       bigQueryWriter.tableName = this.tableName;
       bigQueryWriter.uploadThread = this.uploadThread;
       bigQueryWriter.entryIdFields = this.entryIdFields;
