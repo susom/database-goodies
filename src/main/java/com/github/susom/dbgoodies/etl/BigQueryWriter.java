@@ -7,7 +7,6 @@ import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.Schema;
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +40,6 @@ public class BigQueryWriter<T> {
   private volatile CountDownLatch readerCompletedSignal;
 
   private String bigqueryProjectId;
-  private String googleCredentialFile;
 
   private volatile CountDownLatch bqSchemaReady;
 
@@ -453,10 +451,7 @@ public class BigQueryWriter<T> {
                 BigQueryOptions.Builder optionsBuilder = BigQueryOptions.newBuilder();
 
                 BigQueryOptions bigqueryOpt =
-                  optionsBuilder.setCredentials(getGoogleCredential(googleCredentialFile,
-                  Lists.newArrayList("https://www.googleapis.com/auth/bigquery")))
-                  .setProjectId(bigqueryProjectId)
-                  .build();
+                  optionsBuilder.setProjectId(bigqueryProjectId).build();
 
                   BigQuery bigquery= bigqueryOpt.getService();
 
@@ -585,11 +580,6 @@ public class BigQueryWriter<T> {
       return this;
     }
 
-    public BigQueryWriterBuilder withBigQueryCredentialFile(String googleCredentialFile) {
-      this.googleCredentialFile = googleCredentialFile;
-      return this;
-    }
-
     public BigQueryWriterBuilder withLabels(Map<String,String> labels){
       this.labels = labels;
       return this;
@@ -603,7 +593,6 @@ public class BigQueryWriter<T> {
       bigQueryWriter.uploadThread = this.uploadThread;
       bigQueryWriter.entryIdFields = this.entryIdFields;
       bigQueryWriter.uploadBatchSize = this.uploadBatchSize;
-      bigQueryWriter.googleCredentialFile = this.googleCredentialFile;
       bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.labels = this.labels;
       return bigQueryWriter;

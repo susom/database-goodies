@@ -279,12 +279,6 @@ public final class Etl {
      *  requres Google Client Credential file properly set up in env
      */
     public void start() throws Exception {
-        Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
-        if(!google_credential_file.isPresent()){
-            log.error("Can not get google api credential file from environment variable GOOGLE_APPLICATION_CREDENTIALS ");
-            System.exit(1);
-        }
-
         Map<String,String> labels= new HashMap<>();
         labels.put("job","testing");
         BigQueryWriter<Row> bqWriter = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
@@ -294,7 +288,6 @@ public final class Etl {
                 .withEntryIdFields(this.entryIdFields.split(","))
                 .withUploadBatchSize(500)
                 .withUploadThread(1)
-                .withBigQueryCredentialFile(google_credential_file.get())
                 .withLabels(labels)
                 .build();
 
