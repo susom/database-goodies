@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -192,6 +193,7 @@ public class BigQueryWriter<T> {
             fieldType = LegacySQLTypeName.INTEGER;
             break;
           case Types.REAL:
+          case Types.FLOAT:
           case 100: // Oracle proprietary it seems
             fieldType = LegacySQLTypeName.FLOAT;
             break;
@@ -264,6 +266,7 @@ public class BigQueryWriter<T> {
           row.put(columnNames[i], r.getFloatOrNull(columnNames[i]));
           break;
         case Types.DOUBLE:
+        case Types.FLOAT: //bigquery float is double precision
         case 101: // Oracle proprietary it seems
           row.put(columnNames[i], r.getDoubleOrNull(columnNames[i]));
           break;
@@ -273,7 +276,8 @@ public class BigQueryWriter<T> {
           BigDecimal v = r.getBigDecimalOrNull(columnNames[i]);
           if(v!=null){
             try{
-              row.put(columnNames[i],v);
+              // 9 decimal digits of scale allowed by BigQuery
+              row.put(columnNames[i],v.setScale(9, RoundingMode.HALF_UP));
             }catch (Exception e){
               row.put(columnNames[i], null);
             }
