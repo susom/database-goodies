@@ -286,7 +286,7 @@ public final class Etl {
         }
 
         Map<String,String> labels= new HashMap<>();
-        labels.put("job","testing");
+
         BigQueryWriter<Row> bqWriter = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
                 .withBigqueryProjectId(this.projectId)
                 .withDataset(this.datasetName)
