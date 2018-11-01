@@ -283,7 +283,7 @@ public final class Etl {
 
       Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
 
-      labels.put("job", "testing");
+
       BigQueryWriter.BigQueryWriterBuilder builder = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
               .withBigqueryProjectId(this.projectId)
               .withDataset(this.datasetName)
