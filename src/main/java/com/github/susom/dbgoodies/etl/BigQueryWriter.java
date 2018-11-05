@@ -272,17 +272,18 @@ public class BigQueryWriter<T> {
           break;
         case Types.DECIMAL:
         case Types.NUMERIC:
-
+          // 9 decimal digits of scale allowed by BigQuery
           BigDecimal v = r.getBigDecimalOrNull(columnNames[i]);
-          if(v!=null){
+          if(v == null){
+            row.put(columnNames[i],null);
+          }else if(v.scale()>9){
             try{
-              // 9 decimal digits of scale allowed by BigQuery
               row.put(columnNames[i],v.setScale(9, RoundingMode.HALF_UP));
             }catch (Exception e){
               row.put(columnNames[i], null);
             }
           }else{
-            row.put(columnNames[i],null);
+            row.put(columnNames[i],v);
           }
           break;
         case Types.BINARY:
@@ -320,11 +321,15 @@ public class BigQueryWriter<T> {
       }
     }
 
-    return InsertAllRequest.RowToInsert.of(getRowId(row), row);
+    if(entryIdFields!=null && entryIdFields.length>0)
+      return InsertAllRequest.RowToInsert.of(getRowId(row), row);
+    else
+      return InsertAllRequest.RowToInsert.of(row);
+
   }
 
   private String getRowId(Map<String, Object> row){
-    String id = "id";
+    String id = "";
     for (String f : entryIdFields){
       id+= ("_"+ (row.get(f)!=null?row.get(f):row.get(f.toLowerCase())));
     }
