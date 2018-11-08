@@ -279,7 +279,7 @@ public class BigQueryWriter<T> {
           }else if(v.scale()>9){
             try{
               row.put(columnNames[i],v.setScale(9, RoundingMode.HALF_UP));
-            }catch (Exception e){
+            }catch (ArithmeticException e){
               row.put(columnNames[i], null);
             }
           }else{
