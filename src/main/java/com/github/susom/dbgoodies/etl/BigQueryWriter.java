@@ -63,7 +63,6 @@ public class BigQueryWriter<T> {
 
   private int uploadThread;
 
-
   private AtomicLong totalCnt = new AtomicLong();
 
   private volatile long startTs = Instant.now().getEpochSecond();
@@ -458,16 +457,19 @@ public class BigQueryWriter<T> {
           public void run() {
               try {
 
-                  log.info("start worker"+Thread.currentThread().getName());
+                log.info("start worker"+Thread.currentThread().getName());
+
                 BigQueryOptions.Builder optionsBuilder = BigQueryOptions.newBuilder();
+                optionsBuilder.setProjectId(bigqueryProjectId);
 
-                BigQueryOptions bigqueryOpt =
+                if (googleCredentialFile != null) {
                   optionsBuilder.setCredentials(getGoogleCredential(googleCredentialFile,
-                  Lists.newArrayList("https://www.googleapis.com/auth/bigquery")))
-                  .setProjectId(bigqueryProjectId)
-                  .build();
+                          Lists.newArrayList("https://www.googleapis.com/auth/bigquery")));
+                }
 
-                  BigQuery bigquery= bigqueryOpt.getService();
+                BigQueryOptions bigqueryOpt = optionsBuilder.build();
+
+                BigQuery bigquery= bigqueryOpt.getService();
 
                   Table table = null;
 
@@ -608,11 +610,11 @@ public class BigQueryWriter<T> {
       BigQueryWriter<Row> bigQueryWriter = new BigQueryWriter<>();
       bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.dataset = this.dataset;
+      bigQueryWriter.googleCredentialFile = this.googleCredentialFile;
       bigQueryWriter.tableName = this.tableName;
       bigQueryWriter.uploadThread = this.uploadThread;
       bigQueryWriter.entryIdFields = this.entryIdFields;
       bigQueryWriter.uploadBatchSize = this.uploadBatchSize;
-      bigQueryWriter.googleCredentialFile = this.googleCredentialFile;
       bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.labels = this.labels;
       return bigQueryWriter;
