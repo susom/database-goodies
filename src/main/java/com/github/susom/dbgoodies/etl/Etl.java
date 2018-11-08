@@ -250,10 +250,10 @@ public final class Etl {
   }
 
 
-    /**
-     * BigQuery support.
-     * by Wencheng
-     */
+  /**
+   * BigQuery support.
+   * by Wencheng
+   */
   public static class SaveAsBigQuery {
     private final String projectId;
     private final String datasetName;
@@ -272,36 +272,35 @@ public final class Etl {
     }
 
     /**
-     *  create a BigQueryWriter and hook up with Database select callback. when query finish, signal writer to turn off workers
-     *
-     *  the writer uses BigQuery stream api, which requires unique object id for each row. EntryIdFields is important, you should use primary key field list for this. BigQueryWriter will take this comma separated string input and compute object id for each row when upload to BigQuery
-     *
-     *  requres Google Client Credential file properly set up in env
+     * create a BigQueryWriter and hook up with Database select callback. when query finish, signal writer to turn off workers
+     * <p>
+     * the writer uses BigQuery stream api, which requires unique object id for each row. EntryIdFields is important, you should use primary key field list for this. BigQueryWriter will take this comma separated string input and compute object id for each row when upload to BigQuery
+     * <p>
+     * requres Google Client Credential file properly set up in env
      */
     public void start() throws Exception {
-        Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
-        if(!google_credential_file.isPresent()){
-            log.error("Can not get google api credential file from environment variable GOOGLE_APPLICATION_CREDENTIALS ");
-            System.exit(1);
-        }
+      Map<String, String> labels = new HashMap<>();
 
-        Map<String,String> labels= new HashMap<>();
-        labels.put("job","testing");
-        BigQueryWriter<Row> bqWriter = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
-                .withBigqueryProjectId(this.projectId)
-                .withDataset(this.datasetName)
-                .withTableName(this.tableName)
-                .withEntryIdFields(this.entryIdFields.split(","))
-                .withUploadBatchSize(500)
-                .withUploadThread(1)
-                .withBigQueryCredentialFile(google_credential_file.get())
-                .withLabels(labels)
-                .build();
+      Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
+
+
+      BigQueryWriter.BigQueryWriterBuilder builder = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
+              .withBigqueryProjectId(this.projectId)
+              .withDataset(this.datasetName)
+              .withTableName(this.tableName)
+              .withEntryIdFields(this.entryIdFields.split(","))
+              .withUploadBatchSize(500)
+              .withUploadThread(1)
+              .withLabels(labels);
+
+      google_credential_file.ifPresent(builder::withBigQueryCredentialFile);
+
+      BigQueryWriter<Row> bqWriter = builder.build();
 
         CountDownLatch readerCompletedSignal = new CountDownLatch(1);
-        bqWriter.setupWriter(readerCompletedSignal);
-        select.fetchSize(fetchSize).query(bqWriter.databaseRowsHandler());
-        readerCompletedSignal.countDown();
+      bqWriter.setupWriter(readerCompletedSignal);
+      select.fetchSize(fetchSize).query(bqWriter.databaseRowsHandler());
+      readerCompletedSignal.countDown();
     }
 
     /**
@@ -313,7 +312,6 @@ public final class Etl {
       return this;
     }
   }
-
 
 
   private static class Builder {
@@ -374,111 +372,111 @@ public final class Etl {
           //For each column in the table
           //Specify the schema in the AVRO file based on the column data type
           switch (types[i]) {
-          case Types.SMALLINT:
-          case Types.INTEGER:
-            fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.INT)),
-                null, Field.NULL_VALUE));
-            break;
-          case Types.BIGINT:
-            fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
-                null, Field.NULL_VALUE));
-            break;
-          case Types.REAL:
-          case 100: // Oracle proprietary it seems
-            fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.FLOAT)),
-                null, Field.NULL_VALUE));
-            break;
-          case Types.DOUBLE:
-          case 101: // Oracle proprietary it seems
-            fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.DOUBLE)),
-                null, Field.NULL_VALUE));
-            break;
-          case Types.NUMERIC:
-            //These are the columns with NUMBER and FLOAT data types in Oracle
-            //Specific data types are:
-            //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side and
-            //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side
-            //For pediatric side -->
-            //  PRECISION = 0; SCALE = -127 for NUMBER
-            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-            //For adult side -->
-            //  PRECISION = 0; SCALE = -127 for NUMBER
-            //  PRECISION = 18; SCALE = 0 for NUMBER(18)
-            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-            //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
-            //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
-            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-            //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
-            if (precision[i] == 0 && scale[i] == -127) {
-              //NUMBER data type in Oracle
-              //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
-              //Integer in java is 4 bytes / 32 bits
-              //Long in Java is 8 bytes / 64 bits
+            case Types.SMALLINT:
+            case Types.INTEGER:
               fields.add(new org.apache.avro.Schema.Field(names[i],
-                //org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.INT)),
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
-                null, Field.NULL_VALUE));
-            } else if (precision[i] != 0 && scale[i] == 0) {
-              //NUMBER(18), NUMBER(38) data types in Oracle
-              //Long in Java is 8 bytes / 64 bits
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.INT)),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.BIGINT:
               fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
-                null, Field.NULL_VALUE));
-            } else if (precision[i] != 0 && scale[i] != 0) {
-              //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
-              //org.apache.avro.Schema bytes = org.apache.avro.Schema.create(Type.BYTES);
-              //bytes.addProp("logical_type", "decimal");
-              //bytes.addProp("precision", precision[i]); //38 or 12 or 18
-              //bytes.addProp("scale", scale[i]); //9 or 2
-              //Setting the above in an alternate way
-              org.apache.avro.Schema bytes = LogicalTypes.decimal(precision[i], scale[i]).addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES));
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.REAL:
+            case 100: // Oracle proprietary it seems
               fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), bytes),
-                null, Field.NULL_VALUE));
-            }
-            break;
-          case Types.BINARY:
-          case Types.VARBINARY:
-          case Types.BLOB:
-            fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.BYTES)),
-                null, Field.NULL_VALUE));
-            break;
-          case Types.CLOB:
-          case Types.NCLOB:
-            fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
-                null, Field.NULL_VALUE));
-            break;
-          case Types.TIMESTAMP:
-            org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.LONG);
-            date.addProp("logical_type", "timestamp_millis");
-            fields.add(new org.apache.avro.Schema.Field(names[i],
-                org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), date),
-                null, Field.NULL_VALUE));
-            break;
-          case Types.NVARCHAR:
-          case Types.VARCHAR:
-          case Types.CHAR:
-          case Types.NCHAR:
-            if (precision[i] >= 2147483647) {
-              // Postgres seems to report clobs are varchar(2147483647)
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.FLOAT)),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.DOUBLE:
+            case 101: // Oracle proprietary it seems
               fields.add(new org.apache.avro.Schema.Field(names[i],
-                  org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
-                  null, Field.NULL_VALUE));
-            } else {
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.DOUBLE)),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.NUMERIC:
+              //These are the columns with NUMBER and FLOAT data types in Oracle
+              //Specific data types are:
+              //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side and
+              //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side
+              //For pediatric side -->
+              //  PRECISION = 0; SCALE = -127 for NUMBER
+              //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+              //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+              //For adult side -->
+              //  PRECISION = 0; SCALE = -127 for NUMBER
+              //  PRECISION = 18; SCALE = 0 for NUMBER(18)
+              //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+              //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
+              //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
+              //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+              //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
+              if (precision[i] == 0 && scale[i] == -127) {
+                //NUMBER data type in Oracle
+                //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
+                //Integer in java is 4 bytes / 32 bits
+                //Long in Java is 8 bytes / 64 bits
+                fields.add(new org.apache.avro.Schema.Field(names[i],
+                        //org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.INT)),
+                        org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
+                        null, Field.NULL_VALUE));
+              } else if (precision[i] != 0 && scale[i] == 0) {
+                //NUMBER(18), NUMBER(38) data types in Oracle
+                //Long in Java is 8 bytes / 64 bits
+                fields.add(new org.apache.avro.Schema.Field(names[i],
+                        org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.LONG)),
+                        null, Field.NULL_VALUE));
+              } else if (precision[i] != 0 && scale[i] != 0) {
+                //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
+                //org.apache.avro.Schema bytes = org.apache.avro.Schema.create(Type.BYTES);
+                //bytes.addProp("logical_type", "decimal");
+                //bytes.addProp("precision", precision[i]); //38 or 12 or 18
+                //bytes.addProp("scale", scale[i]); //9 or 2
+                //Setting the above in an alternate way
+                org.apache.avro.Schema bytes = LogicalTypes.decimal(precision[i], scale[i]).addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES));
+                fields.add(new org.apache.avro.Schema.Field(names[i],
+                        org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), bytes),
+                        null, Field.NULL_VALUE));
+              }
+              break;
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.BLOB:
               fields.add(new org.apache.avro.Schema.Field(names[i],
-                  org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
-                  null, Field.NULL_VALUE));
-            }
-            break;
-          default:
-            throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.BYTES)),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.CLOB:
+            case Types.NCLOB:
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.TIMESTAMP:
+              org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.LONG);
+              date.addProp("logical_type", "timestamp_millis");
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), date),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.NVARCHAR:
+            case Types.VARCHAR:
+            case Types.CHAR:
+            case Types.NCHAR:
+              if (precision[i] >= 2147483647) {
+                // Postgres seems to report clobs are varchar(2147483647)
+                fields.add(new org.apache.avro.Schema.Field(names[i],
+                        org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
+                        null, Field.NULL_VALUE));
+              } else {
+                fields.add(new org.apache.avro.Schema.Field(names[i],
+                        org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
+                        null, Field.NULL_VALUE));
+              }
+              break;
+            default:
+              throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
           }
         }
 
@@ -496,89 +494,89 @@ public final class Etl {
 
       for (int i = 0; i < names.length; i++) {
         switch (types[i]) {
-        case Types.SMALLINT:
-        case Types.INTEGER:
-          record.put(names[i], r.getIntegerOrNull());
-          break;
-        case Types.BIGINT:
-          record.put(names[i], r.getLongOrNull());
-          break;
-        case Types.REAL:
-        case 100: // Oracle proprietary it seems
-          record.put(names[i], r.getFloatOrNull());
-          break;
-        case Types.DOUBLE:
-        case 101: // Oracle proprietary it seems
-          record.put(names[i], r.getDoubleOrNull());
-          break;
-        case Types.NUMERIC:
-          //These are the columns with NUMBER and FLOAT data types in Oracle
-          //Specific data types are:
-          //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side
-          //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side and
-          //For pediatric side -->
-          //  PRECISION = 0; SCALE = -127 for NUMBER
-          //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-          //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-          //For adult side -->
-          //  PRECISION = 0; SCALE = -127 for NUMBER
-          //  PRECISION = 18; SCALE = 0 for NUMBER(18)
-          //  PRECISION = 38; SCALE = 0 for NUMBER(38)
-          //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
-          //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
-          //  PRECISION = 38; SCALE = 9 for FLOAT(126)
-          //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
-          if (precision[i] == 0 && scale[i] == -127) {
-            //NUMBER data type in Oracle
-            //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
-            //Integer in java is 4 bytes / 32 bits
-            //Long in Java is 8 bytes / 64 bits
-            //record.put(names[i], r.getIntegerOrNull());
+          case Types.SMALLINT:
+          case Types.INTEGER:
+            record.put(names[i], r.getIntegerOrNull());
+            break;
+          case Types.BIGINT:
             record.put(names[i], r.getLongOrNull());
-          } else if (precision[i] != 0 && scale[i] == 0) {
-            //NUMBER(18), NUMBER(38) data types in Oracle
-            //Long in Java is 8 bytes / 64 bits
-            record.put(names[i], r.getLongOrNull());
-          } else if (precision[i] != 0 && scale[i] != 0) {
-            //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
-            //Use a BigDecimal in Java for these types of columns
-            BigDecimal bigDecimalOrNull = r.getBigDecimalOrNull();
-            if (bigDecimalOrNull == null) {
-              record.put(names[i], null);
-            } else {
-              //Use either RoundingMode.DOWN or RoundingMode.FLOOR to truncate a BigDecimal without rounding
-              bigDecimalOrNull = bigDecimalOrNull.setScale(scale[i], RoundingMode.DOWN);
-              record.put(names[i], ByteBuffer.wrap(bigDecimalOrNull.unscaledValue().toByteArray()));
+            break;
+          case Types.REAL:
+          case 100: // Oracle proprietary it seems
+            record.put(names[i], r.getFloatOrNull());
+            break;
+          case Types.DOUBLE:
+          case 101: // Oracle proprietary it seems
+            record.put(names[i], r.getDoubleOrNull());
+            break;
+          case Types.NUMERIC:
+            //These are the columns with NUMBER and FLOAT data types in Oracle
+            //Specific data types are:
+            //  FLOAT(126), NUMBER and NUMBER(38) in pediatric side
+            //  FLOAT(126), NUMBER(18), NUMBER(38), NUMBER(12,2), NUMBER(18,2) in adult side and
+            //For pediatric side -->
+            //  PRECISION = 0; SCALE = -127 for NUMBER
+            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+            //For adult side -->
+            //  PRECISION = 0; SCALE = -127 for NUMBER
+            //  PRECISION = 18; SCALE = 0 for NUMBER(18)
+            //  PRECISION = 38; SCALE = 0 for NUMBER(38)
+            //  PRECISION = 12; SCALE = 2 for NUMBER(12,2)
+            //  PRECISION = 18; SCALE = 2 for NUMBER(18,2)
+            //  PRECISION = 38; SCALE = 9 for FLOAT(126)
+            //log.warn("\n Column with type NUMERIC = " + names[i] + "; PRECISION = " + precision[i] + "; SCALE = " + scale[i]);
+            if (precision[i] == 0 && scale[i] == -127) {
+              //NUMBER data type in Oracle
+              //This was first set as an INTEGER but later changed it to LONG because of Numeric Overflow exception in Java JDBC
+              //Integer in java is 4 bytes / 32 bits
+              //Long in Java is 8 bytes / 64 bits
+              //record.put(names[i], r.getIntegerOrNull());
+              record.put(names[i], r.getLongOrNull());
+            } else if (precision[i] != 0 && scale[i] == 0) {
+              //NUMBER(18), NUMBER(38) data types in Oracle
+              //Long in Java is 8 bytes / 64 bits
+              record.put(names[i], r.getLongOrNull());
+            } else if (precision[i] != 0 && scale[i] != 0) {
+              //NUMBER(12,2), NUMBER(18,2), FLOAT(126) data types in Oracle
+              //Use a BigDecimal in Java for these types of columns
+              BigDecimal bigDecimalOrNull = r.getBigDecimalOrNull();
+              if (bigDecimalOrNull == null) {
+                record.put(names[i], null);
+              } else {
+                //Use either RoundingMode.DOWN or RoundingMode.FLOOR to truncate a BigDecimal without rounding
+                bigDecimalOrNull = bigDecimalOrNull.setScale(scale[i], RoundingMode.DOWN);
+                record.put(names[i], ByteBuffer.wrap(bigDecimalOrNull.unscaledValue().toByteArray()));
+              }
             }
-          }
-          break;
-        case Types.BINARY:
-        case Types.VARBINARY:
-        case Types.BLOB:
-          byte[] bytesOrNull = r.getBlobBytesOrNull();
-          record.put(names[i], bytesOrNull == null ? null : ByteBuffer.wrap(bytesOrNull));
-          break;
-        case Types.CLOB:
-        case Types.NCLOB:
-          record.put(names[i], r.getClobStringOrNull());
-          break;
-        case Types.TIMESTAMP:
-          Date dateOrNull = r.getDateOrNull();
-          record.put(names[i], dateOrNull == null ? null : dateOrNull.getTime());
-          break;
-        case Types.NVARCHAR:
-        case Types.VARCHAR:
-        case Types.CHAR:
-        case Types.NCHAR:
-          if (precision[i] >= 2147483647) {
-            // Postgres seems to report clobs are varchar(2147483647)
+            break;
+          case Types.BINARY:
+          case Types.VARBINARY:
+          case Types.BLOB:
+            byte[] bytesOrNull = r.getBlobBytesOrNull();
+            record.put(names[i], bytesOrNull == null ? null : ByteBuffer.wrap(bytesOrNull));
+            break;
+          case Types.CLOB:
+          case Types.NCLOB:
             record.put(names[i], r.getClobStringOrNull());
-          } else {
-            record.put(names[i], r.getStringOrNull());
-          }
-          break;
-        default:
-          throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
+            break;
+          case Types.TIMESTAMP:
+            Date dateOrNull = r.getDateOrNull();
+            record.put(names[i], dateOrNull == null ? null : dateOrNull.getTime());
+            break;
+          case Types.NVARCHAR:
+          case Types.VARCHAR:
+          case Types.CHAR:
+          case Types.NCHAR:
+            if (precision[i] >= 2147483647) {
+              // Postgres seems to report clobs are varchar(2147483647)
+              record.put(names[i], r.getClobStringOrNull());
+            } else {
+              record.put(names[i], r.getStringOrNull());
+            }
+            break;
+          default:
+            throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
         }
       }
 
