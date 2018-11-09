@@ -261,7 +261,9 @@ public final class Etl {
     private final String entryIdFields;
     private final SqlSelect select;
     private int fetchSize = 100000;
-
+    private int workerNumber = 1;
+    private int batchSize = 500;
+    private Map<String, String> labels;
 
     SaveAsBigQuery(String projectId, String datasetName, String tableName, String entryIdFields, SqlSelect select) {
       this.projectId = projectId;
@@ -279,7 +281,9 @@ public final class Etl {
      * requres Google Client Credential file properly set up in env
      */
     public void start() throws Exception {
-      Map<String, String> labels = new HashMap<>();
+      if(this.labels == null){
+        labels = new HashMap<>();
+      }
 
       Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
 
@@ -288,8 +292,8 @@ public final class Etl {
               .withDataset(this.datasetName)
               .withTableName(this.tableName)
               .withEntryIdFields(this.entryIdFields.split(","))
-              .withUploadBatchSize(500)
-              .withUploadThread(1)
+              .withUploadBatchSize(this.batchSize)
+              .withUploadThread(this.workerNumber)
               .withLabels(labels);
 
       google_credential_file.ifPresent(builder::withBigQueryCredentialFile);
@@ -308,9 +312,38 @@ public final class Etl {
      */
     @CheckReturnValue
     SaveAsBigQuery fetchSize(int nbrRows) {
-      fetchSize = nbrRows;
+      this.fetchSize = nbrRows;
       return this;
     }
+
+    /**
+     * configure number of upload workers
+     */
+    @CheckReturnValue
+    SaveAsBigQuery workerNumber(int workerNum) {
+      this.workerNumber = workerNum;
+      return this;
+    }
+
+    /**
+     * configure batch size of each BigQuery insert
+     */
+    @CheckReturnValue
+    SaveAsBigQuery bigQueryBatchSize(int batchSize) {
+      this.batchSize = batchSize;
+      return this;
+    }
+
+    /**
+     * add labels to BigQuery table
+     */
+    @CheckReturnValue
+    SaveAsBigQuery bigQueryLabel(Map<String, String> labels) {
+      this.labels = labels;
+      return this;
+    }
+
+
   }
 
 

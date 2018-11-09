@@ -47,7 +47,7 @@ public class BigQueryWriter<T> {
   private volatile CountDownLatch bqSchemaReady;
 
   volatile private Schema bgSchema;
-  private FieldList fields;
+//  private FieldList fields;
 
   private TableInfo tableInfo;
   private String[] entryIdFields;
@@ -57,7 +57,7 @@ public class BigQueryWriter<T> {
   private String dataset;
   private String[] columnNames;
   private int[] precisions;
-  private int[] scales;
+//  private int[] scales;
   private int[] columnTypes;
   private Map<String,String> labels;
 
@@ -142,8 +142,8 @@ public class BigQueryWriter<T> {
   private Table checkTable(BigQuery bigquery){
     TableId tableId = TableId.of(dataset, tableName);
     Table table = bigquery.getTable(tableId);
-    if(table!=null)
-      fields = Objects.requireNonNull(table.getDefinition().getSchema()).getFields();
+//    if(table!=null)
+//      fields = Objects.requireNonNull(table.getDefinition().getSchema()).getFields();
 
 
     log.info("checking table result:"+(table!=null?table.toString():null));
@@ -173,7 +173,7 @@ public class BigQueryWriter<T> {
       columnNames = SqlArgs.tidyColumnNames(columnNames);
       columnTypes = new int[columnCount];
       precisions = new int[columnCount];
-      scales = new int[columnCount];
+//      scales = new int[columnCount];
 
       for (int i = 0; i < columnCount; i++) {
         int columnType = metadata.getColumnType(i + 1);
@@ -206,7 +206,7 @@ public class BigQueryWriter<T> {
             int precision = metadata.getPrecision(i + 1);
             int scale = metadata.getScale(i + 1);
             precisions[i] = precision;
-            scales[i] = scale;
+//            scales[i] = scale;
             fieldType = LegacySQLTypeName.NUMERIC; //LegacySQLTypeName.BYTES
             break;
 
@@ -239,7 +239,7 @@ public class BigQueryWriter<T> {
       throw new DatabaseException("Unable to retrieve metadata from ResultSet", e);
     }
     bgSchema = com.google.cloud.bigquery.Schema.of(schemaFields);
-    fields = bgSchema.getFields();
+//    fields = bgSchema.getFields();
     return bgSchema;
   }
 
@@ -434,9 +434,9 @@ public class BigQueryWriter<T> {
   }
 
 
-  public synchronized com.google.auth.Credentials  getGoogleCredential(String credentialFile, List<String> scopes) throws IOException {
+  private synchronized com.google.auth.Credentials  getGoogleCredential(String credentialFile, List<String> scopes) throws IOException {
 
-    GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(credentialFile), new HttpTransportFactory() {
+    return GoogleCredentials.fromStream(new FileInputStream(credentialFile), new HttpTransportFactory() {
       @Override
       public HttpTransport create() {
         try {
@@ -448,7 +448,6 @@ public class BigQueryWriter<T> {
       }
     })
       .createScoped(scopes);
-    return credentials;
   }
 
 
@@ -551,7 +550,7 @@ public class BigQueryWriter<T> {
   }
 
 
-  public static final class BigQueryWriterBuilder {
+   static final class BigQueryWriterBuilder {
     String bigqueryProjectId;
     String googleCredentialFile;
     String[] entryIdFields;
@@ -564,51 +563,51 @@ public class BigQueryWriter<T> {
     private BigQueryWriterBuilder() {
     }
 
-    public static BigQueryWriterBuilder aBigQueryWriter() {
+    static BigQueryWriterBuilder aBigQueryWriter() {
       return new BigQueryWriterBuilder();
     }
 
-    public BigQueryWriterBuilder withBigqueryProjectId(String bigqueryProjectId) {
+    BigQueryWriterBuilder withBigqueryProjectId(String bigqueryProjectId) {
       this.bigqueryProjectId = bigqueryProjectId;
       return this;
     }
 
-    public BigQueryWriterBuilder withEntryIdFields(String[] entryIdFields) {
+    BigQueryWriterBuilder withEntryIdFields(String[] entryIdFields) {
       this.entryIdFields = entryIdFields;
       return this;
     }
 
-    public BigQueryWriterBuilder withUploadBatchSize(int uploadBatchSize) {
+    BigQueryWriterBuilder withUploadBatchSize(int uploadBatchSize) {
       this.uploadBatchSize = uploadBatchSize;
       return this;
     }
 
-    public BigQueryWriterBuilder withDataset(String dataset) {
+    BigQueryWriterBuilder withDataset(String dataset) {
       this.dataset = dataset;
       return this;
     }
 
-    public BigQueryWriterBuilder withTableName(String tableName) {
+    BigQueryWriterBuilder withTableName(String tableName) {
       this.tableName = tableName;
       return this;
     }
 
-    public BigQueryWriterBuilder withUploadThread(int uploadThread) {
+    BigQueryWriterBuilder withUploadThread(int uploadThread) {
       this.uploadThread = uploadThread;
       return this;
     }
 
-    public BigQueryWriterBuilder withBigQueryCredentialFile(String googleCredentialFile) {
+    BigQueryWriterBuilder withBigQueryCredentialFile(String googleCredentialFile) {
       this.googleCredentialFile = googleCredentialFile;
       return this;
     }
 
-    public BigQueryWriterBuilder withLabels(Map<String,String> labels){
+    BigQueryWriterBuilder withLabels(Map<String,String> labels){
       this.labels = labels;
       return this;
     }
 
-    public BigQueryWriter<Row> build() throws Exception {
+    BigQueryWriter<Row> build() throws Exception {
       BigQueryWriter<Row> bigQueryWriter = new BigQueryWriter<>();
       bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.dataset = this.dataset;
@@ -617,7 +616,6 @@ public class BigQueryWriter<T> {
       bigQueryWriter.uploadThread = this.uploadThread;
       bigQueryWriter.entryIdFields = this.entryIdFields;
       bigQueryWriter.uploadBatchSize = this.uploadBatchSize;
-      bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.labels = this.labels;
       return bigQueryWriter;
     }

@@ -56,7 +56,7 @@ public class SaveAsBigQueryTest  {
 
     @Test
     public void saveQuery() throws Exception {
-        Etl.saveQuery(db.toSelect("select * from dbtest")).asBigQuery("som-rit-phi-starr-miner-dev", "rit_clarity_note_non_phi", "dbtest", "id").fetchSize(10).start();
+        Etl.saveQuery(db.toSelect("select * from dbtest")).asBigQuery("som-rit-phi-starr-miner-dev", "rit_clarity_note_non_phi", "dbtest", "id").fetchSize(10).bigQueryBatchSize(10).workerNumber(2).start();
 
     }
 }
