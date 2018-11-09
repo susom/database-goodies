@@ -320,11 +320,11 @@ public class BigQueryWriter<T> {
       }
     }
 
-    if(entryIdFields!=null && entryIdFields.length>0)
+    if(entryIdFields!=null && entryIdFields.length>0) {
       return InsertAllRequest.RowToInsert.of(getRowId(row), row);
-    else
+    }else {
       return InsertAllRequest.RowToInsert.of(row);
-
+    }
   }
 
   private String getRowId(Map<String, Object> row){
@@ -389,10 +389,12 @@ public class BigQueryWriter<T> {
                 totalCnt.addAndGet(batchInsertData.size());
                 long timeTook = (Instant.now().getEpochSecond()-lastBatchStartTs);
                 long totalTimeTook = Instant.now().getEpochSecond() - startTs;
-                if(timeTook!=0)
-                  log.info("db "+tableName+" total:"+totalCnt.get()+" time "+timeTook+" s speed:"+ totalCnt.get()/totalTimeTook +" r/s");
-                else
+                if(timeTook!=0) {
+                  log.info("db " + tableName + " total:" + totalCnt.get() + " time " + timeTook
+                      + " s speed:" + totalCnt.get() / totalTimeTook + " r/s");
+                }else {
                   System.out.print("*");
+                }
 
                 lastBatchStartTs = Instant.now().getEpochSecond() ;
                 batchByteSize = 0;
