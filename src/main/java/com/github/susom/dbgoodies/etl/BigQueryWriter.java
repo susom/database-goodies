@@ -392,9 +392,10 @@ public class BigQueryWriter<T> {
                 if(timeTook!=0) {
                   log.info("db " + tableName + " total:" + totalCnt.get() + " time " + timeTook
                       + " s speed:" + totalCnt.get() / totalTimeTook + " r/s");
-                }else {
-                  System.out.print("*");
                 }
+//                else {
+//                  System.out.print("*");
+//                }
 
                 lastBatchStartTs = Instant.now().getEpochSecond() ;
                 batchByteSize = 0;
@@ -405,7 +406,7 @@ public class BigQueryWriter<T> {
             if(uploadQueue.size()>uploadThread * 2){
               log.info("wait queue clear up");
               while(true) {
-                System.out.print("~"+uploadQueue.size());
+//                System.out.print("~"+uploadQueue.size());
                 Thread.sleep(2000);
                 if(uploadQueue.size()<=uploadThread * 2) {
                   break;
@@ -501,13 +502,13 @@ public class BigQueryWriter<T> {
                           try {
                               InsertAllResponse response = table.insert(payload);
 
-                                System.out.print("<");
+//                                System.out.print("<");
                               if(response.getInsertErrors().size()>0){
                                   log.error(response.getInsertErrors().toString());
                                   throw new Exception("BigQuery failed");
                               }else{
                                 lastId = payload.get(payload.size()-1).getId();
-                                System.out.print(workerId+">");
+//                                System.out.print(workerId+">");
                                 payload.clear();
 
                                 break;

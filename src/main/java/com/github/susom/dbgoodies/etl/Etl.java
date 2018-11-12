@@ -329,16 +329,16 @@ public final class Etl {
      * configure batch size of each BigQuery insert
      */
     @CheckReturnValue
-    SaveAsBigQuery bigQueryBatchSize(int batchSize) {
+    SaveAsBigQuery batchSize(int batchSize) {
       this.batchSize = batchSize;
       return this;
     }
 
     /**
-     * add labels to BigQuery table
+     * add labels to BigQuery table if table gets created in this run. The entire map will be replaced by the provided new map.
      */
     @CheckReturnValue
-    SaveAsBigQuery bigQueryLabel(Map<String, String> labels) {
+    SaveAsBigQuery bigQueryLabels(Map<String, String> labels) {
       this.labels = labels;
       return this;
     }
