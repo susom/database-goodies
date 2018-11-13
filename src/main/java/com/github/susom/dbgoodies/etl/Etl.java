@@ -345,7 +345,7 @@ public final class Etl {
      * add label in accumulative way
      */
     @CheckReturnValue
-    SaveAsBigQuery bigQueryLabel(String name, String value ) {
+    SaveAsBigQuery addLabel(String name, String value ) {
       if(this.labels == null){
         this.labels = new HashMap<>();
       }
