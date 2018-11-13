@@ -393,9 +393,6 @@ public class BigQueryWriter<T> {
                   log.info("db " + tableName + " total:" + totalCnt.get() + " time " + timeTook
                       + " s speed:" + totalCnt.get() / totalTimeTook + " r/s");
                 }
-//                else {
-//                  System.out.print("*");
-//                }
 
                 lastBatchStartTs = Instant.now().getEpochSecond() ;
                 batchByteSize = 0;
@@ -406,7 +403,6 @@ public class BigQueryWriter<T> {
             if(uploadQueue.size()>uploadThread * 2){
               log.info("wait queue clear up");
               while(true) {
-//                System.out.print("~"+uploadQueue.size());
                 Thread.sleep(2000);
                 if(uploadQueue.size()<=uploadThread * 2) {
                   break;
@@ -502,15 +498,12 @@ public class BigQueryWriter<T> {
                           try {
                               InsertAllResponse response = table.insert(payload);
 
-//                                System.out.print("<");
                               if(response.getInsertErrors().size()>0){
                                   log.error(response.getInsertErrors().toString());
                                   throw new Exception("BigQuery failed");
                               }else{
                                 lastId = payload.get(payload.size()-1).getId();
-//                                System.out.print(workerId+">");
                                 payload.clear();
-
                                 break;
                               }
                           }catch (Exception e){
@@ -551,7 +544,7 @@ public class BigQueryWriter<T> {
   }
 
 
-   static final class BigQueryWriterBuilder {
+   static final class Builder {
     String bigqueryProjectId;
     String googleCredentialFile;
     String[] entryIdFields;
@@ -561,49 +554,45 @@ public class BigQueryWriter<T> {
     int uploadThread;
     Map<String,String> labels;
 
-    private BigQueryWriterBuilder() {
+    public Builder() {
     }
 
-    static BigQueryWriterBuilder aBigQueryWriter() {
-      return new BigQueryWriterBuilder();
-    }
-
-    BigQueryWriterBuilder withBigqueryProjectId(String bigqueryProjectId) {
+    Builder withBigqueryProjectId(String bigqueryProjectId) {
       this.bigqueryProjectId = bigqueryProjectId;
       return this;
     }
 
-    BigQueryWriterBuilder withEntryIdFields(String[] entryIdFields) {
+    Builder withEntryIdFields(String[] entryIdFields) {
       this.entryIdFields = entryIdFields;
       return this;
     }
 
-    BigQueryWriterBuilder withUploadBatchSize(int uploadBatchSize) {
+    Builder withUploadBatchSize(int uploadBatchSize) {
       this.uploadBatchSize = uploadBatchSize;
       return this;
     }
 
-    BigQueryWriterBuilder withDataset(String dataset) {
+    Builder withDataset(String dataset) {
       this.dataset = dataset;
       return this;
     }
 
-    BigQueryWriterBuilder withTableName(String tableName) {
+    Builder withTableName(String tableName) {
       this.tableName = tableName;
       return this;
     }
 
-    BigQueryWriterBuilder withUploadThread(int uploadThread) {
+    Builder withUploadThread(int uploadThread) {
       this.uploadThread = uploadThread;
       return this;
     }
 
-    BigQueryWriterBuilder withBigQueryCredentialFile(String googleCredentialFile) {
+    Builder withBigQueryCredentialFile(String googleCredentialFile) {
       this.googleCredentialFile = googleCredentialFile;
       return this;
     }
 
-    BigQueryWriterBuilder withLabels(Map<String,String> labels){
+    Builder withLabels(Map<String,String> labels){
       this.labels = labels;
       return this;
     }

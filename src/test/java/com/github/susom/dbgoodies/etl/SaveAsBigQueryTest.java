@@ -13,8 +13,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
-import static org.junit.Assert.*;
-
 public class SaveAsBigQueryTest  {
 
     DatabaseProvider dbp;
@@ -56,7 +54,7 @@ public class SaveAsBigQueryTest  {
 
     @Test
     public void saveQuery() throws Exception {
-        Etl.saveQuery(db.toSelect("select * from dbtest")).asBigQuery("som-rit-phi-starr-miner-dev", "rit_clarity_note_non_phi", "dbtest", "id").fetchSize(10).bigQueryBatchSize(10).workerNumber(2).start();
+        Etl.saveQuery(db.toSelect("select * from dbtest")).asBigQuery("som-rit-phi-starr-miner-dev", "rit_clarity_note_non_phi", "dbtest", "id").fetchSize(10).batchSize(10).workerNumber(2).bigQueryLabel("creator","database-goodies unit test").start();
 
     }
 }

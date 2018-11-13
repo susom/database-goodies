@@ -213,13 +213,13 @@ public final class Etl {
      */
     public void start() {
       select.fetchSize(fetchSize).query(rs -> {
-        Builder builder = null;
+        Etl.Builder builder = null;
         DataFileWriter<GenericRecord> writer = null;
 
         try {
           while (rs.next()) {
             if (builder == null) {
-              builder = new Builder(schemaName, tableName, rs);
+              builder = new Etl.Builder(schemaName, tableName, rs);
               writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
 //                  .setCodec(CodecFactory.nullCodec())
                   .create(builder.schema(), new File(filename));
@@ -287,7 +287,7 @@ public final class Etl {
 
       Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
 
-      BigQueryWriter.BigQueryWriterBuilder builder = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
+      BigQueryWriter.Builder builder = new BigQueryWriter.Builder()
               .withBigqueryProjectId(this.projectId)
               .withDataset(this.datasetName)
               .withTableName(this.tableName)
@@ -300,8 +300,7 @@ public final class Etl {
 
       BigQueryWriter<Row> bqWriter = builder.build();
 
-
-        CountDownLatch readerCompletedSignal = new CountDownLatch(1);
+      CountDownLatch readerCompletedSignal = new CountDownLatch(1);
       bqWriter.setupWriter(readerCompletedSignal);
       select.fetchSize(fetchSize).query(bqWriter.databaseRowsHandler());
       readerCompletedSignal.countDown();
@@ -342,7 +341,17 @@ public final class Etl {
       this.labels = labels;
       return this;
     }
-
+    /**
+     * add label in accumulative way
+     */
+    @CheckReturnValue
+    SaveAsBigQuery bigQueryLabel(String name, String value ) {
+      if(this.labels == null){
+        this.labels = new HashMap<>();
+      }
+      this.labels.put(name,value);
+      return this;
+    }
 
   }
 
