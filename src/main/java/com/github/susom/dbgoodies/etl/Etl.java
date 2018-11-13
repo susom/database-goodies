@@ -337,7 +337,7 @@ public final class Etl {
      * add labels to BigQuery table if table gets created in this run. The entire map will be replaced by the provided new map.
      */
     @CheckReturnValue
-    SaveAsBigQuery bigQueryLabels(Map<String, String> labels) {
+    SaveAsBigQuery withLabels(Map<String, String> labels) {
       this.labels = labels;
       return this;
     }
