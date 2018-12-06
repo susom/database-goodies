@@ -47,7 +47,7 @@ public class BigQueryWriter<T> {
   private volatile CountDownLatch bqSchemaReady;
 
   volatile private Schema bgSchema;
-  private FieldList fields;
+//  private FieldList fields;
 
   private TableInfo tableInfo;
   private String[] entryIdFields;
@@ -57,7 +57,7 @@ public class BigQueryWriter<T> {
   private String dataset;
   private String[] columnNames;
   private int[] precisions;
-  private int[] scales;
+//  private int[] scales;
   private int[] columnTypes;
   private Map<String,String> labels;
 
@@ -142,8 +142,8 @@ public class BigQueryWriter<T> {
   private Table checkTable(BigQuery bigquery){
     TableId tableId = TableId.of(dataset, tableName);
     Table table = bigquery.getTable(tableId);
-    if(table!=null)
-      fields = Objects.requireNonNull(table.getDefinition().getSchema()).getFields();
+//    if(table!=null)
+//      fields = Objects.requireNonNull(table.getDefinition().getSchema()).getFields();
 
 
     log.info("checking table result:"+(table!=null?table.toString():null));
@@ -173,7 +173,7 @@ public class BigQueryWriter<T> {
       columnNames = SqlArgs.tidyColumnNames(columnNames);
       columnTypes = new int[columnCount];
       precisions = new int[columnCount];
-      scales = new int[columnCount];
+//      scales = new int[columnCount];
 
       for (int i = 0; i < columnCount; i++) {
         int columnType = metadata.getColumnType(i + 1);
@@ -206,7 +206,7 @@ public class BigQueryWriter<T> {
             int precision = metadata.getPrecision(i + 1);
             int scale = metadata.getScale(i + 1);
             precisions[i] = precision;
-            scales[i] = scale;
+//            scales[i] = scale;
             fieldType = LegacySQLTypeName.NUMERIC; //LegacySQLTypeName.BYTES
             break;
 
@@ -239,7 +239,7 @@ public class BigQueryWriter<T> {
       throw new DatabaseException("Unable to retrieve metadata from ResultSet", e);
     }
     bgSchema = com.google.cloud.bigquery.Schema.of(schemaFields);
-    fields = bgSchema.getFields();
+//    fields = bgSchema.getFields();
     return bgSchema;
   }
 
@@ -271,17 +271,18 @@ public class BigQueryWriter<T> {
           break;
         case Types.DECIMAL:
         case Types.NUMERIC:
-
+          // 9 decimal digits of scale allowed by BigQuery
           BigDecimal v = r.getBigDecimalOrNull(columnNames[i]);
-          if(v!=null){
+          if(v == null){
+            row.put(columnNames[i],null);
+          }else if(v.scale()>9){
             try{
-              // 9 decimal digits of scale allowed by BigQuery
               row.put(columnNames[i],v.setScale(9, RoundingMode.HALF_UP));
-            }catch (Exception e){
+            }catch (ArithmeticException e){
               row.put(columnNames[i], null);
             }
           }else{
-            row.put(columnNames[i],null);
+            row.put(columnNames[i],v);
           }
           break;
         case Types.BINARY:
@@ -319,11 +320,15 @@ public class BigQueryWriter<T> {
       }
     }
 
-    return InsertAllRequest.RowToInsert.of(getRowId(row), row);
+    if(entryIdFields!=null && entryIdFields.length>0) {
+      return InsertAllRequest.RowToInsert.of(getRowId(row), row);
+    }else {
+      return InsertAllRequest.RowToInsert.of(row);
+    }
   }
 
   private String getRowId(Map<String, Object> row){
-    String id = "id";
+    String id = "";
     for (String f : entryIdFields){
       id+= ("_"+ (row.get(f)!=null?row.get(f):row.get(f.toLowerCase())));
     }
@@ -384,10 +389,10 @@ public class BigQueryWriter<T> {
                 totalCnt.addAndGet(batchInsertData.size());
                 long timeTook = (Instant.now().getEpochSecond()-lastBatchStartTs);
                 long totalTimeTook = Instant.now().getEpochSecond() - startTs;
-                if(timeTook!=0)
-                  log.info("db "+tableName+" total:"+totalCnt.get()+" time "+timeTook+" s speed:"+ totalCnt.get()/totalTimeTook +" r/s");
-                else
-                  System.out.print("*");
+                if(timeTook!=0) {
+                  log.info("db " + tableName + " total:" + totalCnt.get() + " time " + timeTook
+                      + " s speed:" + totalCnt.get() / totalTimeTook + " r/s");
+                }
 
                 lastBatchStartTs = Instant.now().getEpochSecond() ;
                 batchByteSize = 0;
@@ -398,7 +403,6 @@ public class BigQueryWriter<T> {
             if(uploadQueue.size()>uploadThread * 2){
               log.info("wait queue clear up");
               while(true) {
-                System.out.print("~"+uploadQueue.size());
                 Thread.sleep(2000);
                 if(uploadQueue.size()<=uploadThread * 2) {
                   break;
@@ -427,9 +431,9 @@ public class BigQueryWriter<T> {
   }
 
 
-  public synchronized com.google.auth.Credentials  getGoogleCredential(String credentialFile, List<String> scopes) throws IOException {
+  private synchronized com.google.auth.Credentials  getGoogleCredential(String credentialFile, List<String> scopes) throws IOException {
 
-    GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(credentialFile), new HttpTransportFactory() {
+    return GoogleCredentials.fromStream(new FileInputStream(credentialFile), new HttpTransportFactory() {
       @Override
       public HttpTransport create() {
         try {
@@ -441,7 +445,6 @@ public class BigQueryWriter<T> {
       }
     })
       .createScoped(scopes);
-    return credentials;
   }
 
 
@@ -495,15 +498,12 @@ public class BigQueryWriter<T> {
                           try {
                               InsertAllResponse response = table.insert(payload);
 
-                                System.out.print("<");
                               if(response.getInsertErrors().size()>0){
                                   log.error(response.getInsertErrors().toString());
                                   throw new Exception("BigQuery failed");
                               }else{
                                 lastId = payload.get(payload.size()-1).getId();
-                                System.out.print(workerId+">");
                                 payload.clear();
-
                                 break;
                               }
                           }catch (Exception e){
@@ -544,7 +544,7 @@ public class BigQueryWriter<T> {
   }
 
 
-  public static final class BigQueryWriterBuilder {
+   static final class Builder {
     String bigqueryProjectId;
     String googleCredentialFile;
     String[] entryIdFields;
@@ -554,54 +554,50 @@ public class BigQueryWriter<T> {
     int uploadThread;
     Map<String,String> labels;
 
-    private BigQueryWriterBuilder() {
+    public Builder() {
     }
 
-    public static BigQueryWriterBuilder aBigQueryWriter() {
-      return new BigQueryWriterBuilder();
-    }
-
-    public BigQueryWriterBuilder withBigqueryProjectId(String bigqueryProjectId) {
+    Builder withBigqueryProjectId(String bigqueryProjectId) {
       this.bigqueryProjectId = bigqueryProjectId;
       return this;
     }
 
-    public BigQueryWriterBuilder withEntryIdFields(String[] entryIdFields) {
+    Builder withEntryIdFields(String[] entryIdFields) {
       this.entryIdFields = entryIdFields;
       return this;
     }
 
-    public BigQueryWriterBuilder withUploadBatchSize(int uploadBatchSize) {
+    Builder withUploadBatchSize(int uploadBatchSize) {
       this.uploadBatchSize = uploadBatchSize;
       return this;
     }
 
-    public BigQueryWriterBuilder withDataset(String dataset) {
+    Builder withDataset(String dataset) {
       this.dataset = dataset;
       return this;
     }
 
-    public BigQueryWriterBuilder withTableName(String tableName) {
+    Builder withTableName(String tableName) {
       this.tableName = tableName;
       return this;
     }
 
-    public BigQueryWriterBuilder withUploadThread(int uploadThread) {
+    Builder withUploadThread(int uploadThread) {
       this.uploadThread = uploadThread;
       return this;
     }
 
-    public BigQueryWriterBuilder withBigQueryCredentialFile(String googleCredentialFile) {
+    Builder withBigQueryCredentialFile(String googleCredentialFile) {
       this.googleCredentialFile = googleCredentialFile;
       return this;
     }
 
-    public BigQueryWriterBuilder withLabels(Map<String,String> labels){
+    Builder withLabels(Map<String,String> labels){
       this.labels = labels;
       return this;
     }
 
-    public BigQueryWriter<Row> build() throws Exception {
+    BigQueryWriter<Row> build() throws Exception {
       BigQueryWriter<Row> bigQueryWriter = new BigQueryWriter<>();
       bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.dataset = this.dataset;
@@ -610,7 +606,6 @@ public class BigQueryWriter<T> {
       bigQueryWriter.uploadThread = this.uploadThread;
       bigQueryWriter.entryIdFields = this.entryIdFields;
       bigQueryWriter.uploadBatchSize = this.uploadBatchSize;
-      bigQueryWriter.bigqueryProjectId = this.bigqueryProjectId;
       bigQueryWriter.labels = this.labels;
       return bigQueryWriter;
     }

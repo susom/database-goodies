@@ -7,3 +7,5 @@ classes
 local.properties
 .vagrant
 dependency-reduced-pom.xml
+.DS_Store
+

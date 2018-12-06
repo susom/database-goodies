@@ -213,13 +213,13 @@ public final class Etl {
      */
     public void start() {
       select.fetchSize(fetchSize).query(rs -> {
-        Builder builder = null;
+        Etl.Builder builder = null;
         DataFileWriter<GenericRecord> writer = null;
 
         try {
           while (rs.next()) {
             if (builder == null) {
-              builder = new Builder(schemaName, tableName, rs);
+              builder = new Etl.Builder(schemaName, tableName, rs);
               writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
 //                  .setCodec(CodecFactory.nullCodec())
                   .create(builder.schema(), new File(filename));
@@ -261,7 +261,9 @@ public final class Etl {
     private final String entryIdFields;
     private final SqlSelect select;
     private int fetchSize = 100000;
-
+    private int workerNumber = 1;
+    private int batchSize = 500;
+    private Map<String, String> labels;
 
     SaveAsBigQuery(String projectId, String datasetName, String tableName, String entryIdFields, SqlSelect select) {
       this.projectId = projectId;
@@ -279,25 +281,26 @@ public final class Etl {
      * requres Google Client Credential file properly set up in env
      */
     public void start() throws Exception {
-      Map<String, String> labels = new HashMap<>();
+      if(this.labels == null){
+        labels = new HashMap<>();
+      }
 
       Optional<String> google_credential_file = Optional.ofNullable(System.getenv("GOOGLE_APPLICATION_CREDENTIALS")) ;
 
-
-      BigQueryWriter.BigQueryWriterBuilder builder = BigQueryWriter.BigQueryWriterBuilder.aBigQueryWriter()
+      BigQueryWriter.Builder builder = new BigQueryWriter.Builder()
               .withBigqueryProjectId(this.projectId)
               .withDataset(this.datasetName)
               .withTableName(this.tableName)
               .withEntryIdFields(this.entryIdFields.split(","))
-              .withUploadBatchSize(500)
-              .withUploadThread(1)
+              .withUploadBatchSize(this.batchSize)
+              .withUploadThread(this.workerNumber)
               .withLabels(labels);
 
       google_credential_file.ifPresent(builder::withBigQueryCredentialFile);
 
       BigQueryWriter<Row> bqWriter = builder.build();
 
-        CountDownLatch readerCompletedSignal = new CountDownLatch(1);
+      CountDownLatch readerCompletedSignal = new CountDownLatch(1);
       bqWriter.setupWriter(readerCompletedSignal);
       select.fetchSize(fetchSize).query(bqWriter.databaseRowsHandler());
       readerCompletedSignal.countDown();
@@ -308,9 +311,48 @@ public final class Etl {
      */
     @CheckReturnValue
     SaveAsBigQuery fetchSize(int nbrRows) {
-      fetchSize = nbrRows;
+      this.fetchSize = nbrRows;
       return this;
     }
+
+    /**
+     * configure number of upload workers
+     */
+    @CheckReturnValue
+    SaveAsBigQuery workerNumber(int workerNum) {
+      this.workerNumber = workerNum;
+      return this;
+    }
+
+    /**
+     * configure batch size of each BigQuery insert
+     */
+    @CheckReturnValue
+    SaveAsBigQuery batchSize(int batchSize) {
+      this.batchSize = batchSize;
+      return this;
+    }
+
+    /**
+     * add labels to BigQuery table if table gets created in this run. The entire map will be replaced by the provided new map.
+     */
+    @CheckReturnValue
+    SaveAsBigQuery withLabels(Map<String, String> labels) {
+      this.labels = labels;
+      return this;
+    }
+    /**
+     * add label in accumulative way
+     */
+    @CheckReturnValue
+    SaveAsBigQuery addLabel(String name, String value ) {
+      if(this.labels == null){
+        this.labels = new HashMap<>();
+      }
+      this.labels.put(name,value);
+      return this;
+    }
+
   }
 
 
