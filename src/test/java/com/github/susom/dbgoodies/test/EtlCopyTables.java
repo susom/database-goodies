@@ -70,7 +70,6 @@ public class EtlCopyTables {
           dbb.transact(dbs ->
               Etl.saveQuery(dbs.get().toSelect(String.format("select * from %s", tables.get(i))))
                   .asTable(dbs2, tables.get(i))
-                  .dropAndCreateTable()
                   .start()
           )
       );
