@@ -43,12 +43,13 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <vertx.version>3.6.0</vertx.version>
   </properties>
 
   <distributionManagement>
     <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      <id>io.cloudrepo.rit-public-snapshot</id>
+      <url>https://susom.mycloudrepo.io/repositories/rit-public-snapshot</url>
     </snapshotRepository>
     <repository>
       <id>ossrh</id>
@@ -57,13 +58,6 @@
   </distributionManagement>
 
   <build>
-    <extensions>
-      <extension>
-        <groupId>io.packagecloud.maven.wagon</groupId>
-        <artifactId>maven-packagecloud-wagon</artifactId>
-        <version>0.0.6</version>
-      </extension>
-    </extensions>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -235,7 +229,7 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <optional>true</optional>
       <exclusions>
         <exclusion>
@@ -252,13 +246,13 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-codegen</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <optional>true</optional>
     </dependency>
 
@@ -277,7 +271,7 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -502,30 +496,6 @@
           <scope>test</scope>
         </dependency>
       </dependencies>
-    </profile>
-
-    <profile>
-      <id>packagecloud</id>
-      <repositories>
-        <repository>
-          <id>packagecloud</id>
-          <url>https://packagecloud.io/garricko/travis/maven2</url>
-          <snapshots>
-            <enabled>true</enabled>
-            <updatePolicy>always</updatePolicy>
-          </snapshots>
-        </repository>
-      </repositories>
-      <distributionManagement>
-        <snapshotRepository>
-          <id>packagecloud</id>
-          <url>packagecloud+https://packagecloud.io/garricko/travis</url>
-        </snapshotRepository>
-        <repository>
-          <id>packagecloud</id>
-          <url>packagecloud+https://packagecloud.io/garricko/travis</url>
-        </repository>
-      </distributionManagement>
     </profile>
 
     <profile>
