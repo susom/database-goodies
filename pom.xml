@@ -43,6 +43,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <vertx.version>3.6.0</vertx.version>
   </properties>
 
   <distributionManagement>
@@ -235,7 +236,7 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <optional>true</optional>
       <exclusions>
         <exclusion>
@@ -252,13 +253,13 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-codegen</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <optional>true</optional>
     </dependency>
 
@@ -277,7 +278,7 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
-      <version>3.6.0</version>
+      <version>${vertx.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
