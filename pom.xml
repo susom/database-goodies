@@ -5,7 +5,7 @@
   <groupId>com.github.susom</groupId>
   <artifactId>database-goodies</artifactId>
   <packaging>jar</packaging>
-  <version>1.1-SNAPSHOT</version>
+  <version>1.1</version>
 
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Useful things built on top of the database library.</description>
@@ -37,7 +37,7 @@
     <connection>scm:git:https://github.com/susom/database-goodies.git</connection>
     <developerConnection>scm:git:https://github.com/susom/database-goodies.git</developerConnection>
     <url>https://github.com/susom/database-goodies</url>
-    <tag>HEAD</tag>
+    <tag>database-goodies-1.1</tag>
   </scm>
 
   <properties>
