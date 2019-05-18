@@ -497,7 +497,7 @@ public final class Etl {
               break;
             case Types.TIMESTAMP:
               org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.LONG);
-              date.addProp("logical_type", "timestamp_millis");
+              date.addProp("logicalType", "timestamp-millis");
               fields.add(new org.apache.avro.Schema.Field(names[i],
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), date),
                       null, Field.NULL_VALUE));
