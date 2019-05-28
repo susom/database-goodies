@@ -22,18 +22,8 @@ import com.github.susom.database.Schema;
 import com.github.susom.database.Sql;
 import com.github.susom.database.SqlArgs;
 import com.github.susom.database.SqlSelect;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.function.Supplier;
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.file.DataFileWriter;
@@ -42,7 +32,19 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.avro.LogicalTypes;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import java.io.File;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.ByteBuffer;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Supplier;
 
 /**
  * Utility class for copying data and tables around in various ways.
@@ -497,7 +499,7 @@ public final class Etl {
               break;
             case Types.TIMESTAMP:
               org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.LONG);
-              date.addProp("logical_type", "timestamp_millis");
+              date.addProp(LogicalType.LOGICAL_TYPE_PROP, LogicalTypes.timestampMillis().getName());
               fields.add(new org.apache.avro.Schema.Field(names[i],
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), date),
                       null, Field.NULL_VALUE));
