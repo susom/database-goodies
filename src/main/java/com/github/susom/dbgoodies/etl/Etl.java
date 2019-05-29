@@ -83,11 +83,6 @@ public final class Etl {
     }
 
     @CheckReturnValue
-    public SaveAsAvro asAvro(String path, String schemaName, String tableName, int fetchSize, CodecFactory codec) {
-      return new SaveAsAvro(path, schemaName, tableName, select).withCodec(codec).fetchSize(fetchSize);
-    }
-
-    @CheckReturnValue
     public SaveAsBigQuery asBigQuery(String projectId, String datasetName, String tableName, String entryIdFields) {
       return new SaveAsBigQuery(projectId, datasetName, tableName, entryIdFields, select);
     }
@@ -249,7 +244,7 @@ public final class Etl {
      * underlying JDBC driver (if supported). Default value is 100,000 rows.
      */
     @CheckReturnValue
-    SaveAsAvro fetchSize(int nbrRows) {
+    public SaveAsAvro fetchSize(int nbrRows) {
       fetchSize = nbrRows;
       return this;
     }
@@ -258,7 +253,7 @@ public final class Etl {
      * Allow setting a custom codec
      */
     @CheckReturnValue
-    SaveAsAvro withCodec(CodecFactory codec) {
+    public SaveAsAvro withCodec(CodecFactory codec) {
       this.codec = codec;
       return this;
     }
