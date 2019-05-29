@@ -27,6 +27,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
@@ -52,6 +53,7 @@ import java.util.function.Supplier;
  * @author garricko
  * @author dbalraj
  * @author wencheng
+ * @author jmesterh
  */
 public final class Etl {
   private static final Logger log = LoggerFactory.getLogger(Etl.class);
@@ -201,6 +203,7 @@ public final class Etl {
     private final String schemaName;
     private final String tableName;
     private final SqlSelect select;
+    private CodecFactory codec;
     private int fetchSize = 100000;
 
     SaveAsAvro(String filename, String schemaName, String tableName, SqlSelect select) {
@@ -215,19 +218,15 @@ public final class Etl {
      */
     public void start() {
       select.fetchSize(fetchSize).query(rs -> {
-        Etl.Builder builder = null;
-        DataFileWriter<GenericRecord> writer = null;
+
+        Etl.Builder builder = new Etl.Builder(schemaName, tableName, rs);
+        DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
+            .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
+            .create(builder.schema(), new File(filename));;
+        log.debug("Using schema: \n" + builder.schema().toString(true));
 
         try {
           while (rs.next()) {
-            if (builder == null) {
-              builder = new Etl.Builder(schemaName, tableName, rs);
-              writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
-//                  .setCodec(CodecFactory.nullCodec())
-                  .create(builder.schema(), new File(filename));
-              log.debug("Using schema: \n" + builder.schema().toString(true));
-            }
-
             writer.append(builder.read(rs));
           }
         } finally {
@@ -245,8 +244,17 @@ public final class Etl {
      * underlying JDBC driver (if supported). Default value is 100,000 rows.
      */
     @CheckReturnValue
-    SaveAsAvro fetchSize(int nbrRows) {
+    public SaveAsAvro fetchSize(int nbrRows) {
       fetchSize = nbrRows;
+      return this;
+    }
+
+    /**
+     * Allow setting a custom codec
+     */
+    @CheckReturnValue
+    public SaveAsAvro withCodec(CodecFactory codec) {
+      this.codec = codec;
       return this;
     }
   }
