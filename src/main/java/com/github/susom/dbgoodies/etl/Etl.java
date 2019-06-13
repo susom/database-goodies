@@ -205,6 +205,7 @@ public final class Etl {
     private final SqlSelect select;
     private CodecFactory codec;
     private int fetchSize = 100000;
+    private boolean tidy;
 
     SaveAsAvro(String filename, String schemaName, String tableName, SqlSelect select) {
       this.filename = filename;
@@ -219,7 +220,7 @@ public final class Etl {
     public void start() {
       select.fetchSize(fetchSize).query(rs -> {
 
-        Etl.Builder builder = new Etl.Builder(schemaName, tableName, rs);
+        Etl.Builder builder = new Etl.Builder(schemaName, tidy ? tidy(tableName) : tableName, rs);
         DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
             .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
             .create(builder.schema(), new File(filename));
@@ -252,7 +253,7 @@ public final class Etl {
         File avroFile = new File(getFilename(fileNo));
         files.add(avroFile.getAbsolutePath());
 
-        Etl.Builder builder = new Etl.Builder(schemaName, tableName, rs);
+        Etl.Builder builder = new Etl.Builder(schemaName, tidy ? tidy(tableName) : tableName, rs);
         DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(
             new GenericDatumWriter<>(builder.schema()))
             .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
@@ -301,6 +302,14 @@ public final class Etl {
       return path.toString();
     }
 
+    private String tidy(final String name) {
+      return name
+          .replaceAll("[^a-zA-Z0-9]", " ")
+          .replaceAll("\\s", "_")
+          .trim()
+          .toLowerCase();
+    }
+
     /**
      * Allow control of the number of rows to be read at one time by the
      * underlying JDBC driver (if supported). Default value is 100,000 rows.
@@ -319,6 +328,16 @@ public final class Etl {
       this.codec = codec;
       return this;
     }
+
+    /**
+     * Normalize/tidy table names (columns are always tidied)
+     */
+    @CheckReturnValue
+    public SaveAsAvro withTidy(boolean tidy) {
+      this.tidy = tidy;
+      return this;
+    }
+
   }
 
 
