@@ -222,7 +222,7 @@ public final class Etl {
         Etl.Builder builder = new Etl.Builder(schemaName, tableName, rs);
         DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
             .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
-            .create(builder.schema(), new File(filename));;
+            .create(builder.schema(), new File(filename));
         log.debug("Using schema: \n" + builder.schema().toString(true));
 
         try {
@@ -237,6 +237,68 @@ public final class Etl {
 
         return null;
       });
+    }
+
+    /**
+     * Saves a table as multiple Avro files, returning a list of the files created.
+     * @param rowsPerFile how many rows per avro file
+     * @return paths to created avro files
+     */
+    public List<String> start(long rowsPerFile) {
+      List<String> files = new ArrayList<>();
+      select.fetchSize(fetchSize).query(rs -> {
+        int fileNo = 0;
+
+        File avroFile = new File(getFilename(fileNo));
+        files.add(avroFile.getAbsolutePath());
+
+        Etl.Builder builder = new Etl.Builder(schemaName, tableName, rs);
+        DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(
+            new GenericDatumWriter<>(builder.schema()))
+            .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
+            .create(builder.schema(), avroFile);
+        log.debug("Using schema: \n" + builder.schema().toString(true));
+
+        try {
+          long rowCount = 0;
+          while (rs.next()) {
+            writer.append(builder.read(rs));
+            if (rowsPerFile > 0 && (++rowCount > rowsPerFile)) {
+              writer.close();
+              avroFile = new File(getFilename(++fileNo));
+              rowCount = 0;
+              writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
+                  .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
+                  .create(builder.schema(), avroFile);
+              files.add(avroFile.getAbsolutePath());
+            }
+          }
+        } finally {
+          if (writer != null) {
+            writer.close();
+          }
+        }
+        return null;
+      });
+      return files;
+    }
+
+    /*
+     Replaces %{PART} with the given file number, or appends it if %{PART} is not found
+     */
+    private String getFilename(int fileNo) {
+      StringBuilder path = new StringBuilder();
+      if (filename.contains("%{PART}")) {
+        path.append(filename.replace("%{PART}", String.format("%03d", fileNo)));
+      } else {
+        int avroAt = filename.indexOf(".avro");
+        if (avroAt > 0) {
+          path.append(filename, 0, avroAt).append(String.format("-%03d", fileNo)).append(".avro");
+        } else {
+          path.append(filename).append(String.format("-%03d", fileNo));
+        }
+      }
+      return path.toString();
     }
 
     /**
@@ -424,6 +486,7 @@ public final class Etl {
           //For each column in the table
           //Specify the schema in the AVRO file based on the column data type
           switch (types[i]) {
+            case Types.TINYINT:
             case Types.SMALLINT:
             case Types.INTEGER:
               fields.add(new org.apache.avro.Schema.Field(names[i],
@@ -546,6 +609,7 @@ public final class Etl {
 
       for (int i = 0; i < names.length; i++) {
         switch (types[i]) {
+          case Types.TINYINT:
           case Types.SMALLINT:
           case Types.INTEGER:
             record.put(names[i], r.getIntegerOrNull());
