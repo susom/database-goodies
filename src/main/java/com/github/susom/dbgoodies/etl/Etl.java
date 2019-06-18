@@ -481,7 +481,7 @@ public final class Etl {
           //Oracle database returns -127 if scale is unspecified for the column
           //Therefore if the scale is unspecified for the column, set it to the appropriate value based on the table schema
           scale[i] = metadata.getScale(i + 1);
-          if (precision[i] == 126 && scale[i] == -127) {
+          if ((precision[i] == 126 && scale[i] == -127)) {
             //FLOAT(126) column in Oracle; therefore no scale specified in the column data type
             //in GCP BigQuery, the NUMERIC data type is an exact numeric value with 38 digits of precision and 9 decimal digits of scale
             //Precision is the number of digits that the number contains
@@ -489,6 +489,32 @@ public final class Etl {
             precision[i] = 38;
             scale[i] = 9;
           }
+
+          // BigQuery restrictions:
+          // Types with the DECIMAL annotation may have at most a precision of 38 (total number of digits)
+          // and at most a scale of 9 (digits to the right of the decimal). The number of integer digits, which is the
+          // precision minus the scale, may be at most 29. For example, DECIMAL(38, 9) is supported because the
+          // precision is 38 and the scale is 9. In this example, the number of integer digits is 29.
+          // DECIMAL(38, 5) is not supported because it has a precision of 38 and a scale of 5.
+          // In this example, the number of integer digits is 33.
+
+          if (scale[i] > 0) {
+            if (scale[i] > 9) {
+              scale[i] = 9;
+            }
+            if ((precision[i] + scale[i]) > 38) {
+              precision[i] = 38;
+              scale[i] = 9;
+            }
+            if (precision[i] - scale[i] > 29) {
+              precision[i] = 29;
+            }
+          } else {
+            if (precision[i] > 29) {
+              precision[i] = 29;
+            }
+          }
+
         }
 
         names = SqlArgs.tidyColumnNames(names);
