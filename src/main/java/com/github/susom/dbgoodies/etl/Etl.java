@@ -333,8 +333,8 @@ public final class Etl {
      * Normalize/tidy table names (columns are always tidied)
      */
     @CheckReturnValue
-    public SaveAsAvro withTidy(boolean tidy) {
-      this.tidy = tidy;
+    public SaveAsAvro tidyNames() {
+      this.tidy = true;
       return this;
     }
 
