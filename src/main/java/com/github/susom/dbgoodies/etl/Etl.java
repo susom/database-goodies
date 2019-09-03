@@ -205,6 +205,7 @@ public final class Etl {
     private final SqlSelect select;
     private CodecFactory codec;
     private int fetchSize = 100000;
+    private boolean tidy;
 
     SaveAsAvro(String filename, String schemaName, String tableName, SqlSelect select) {
       this.filename = filename;
@@ -214,29 +215,99 @@ public final class Etl {
     }
 
     /**
-     * Actually begin the database and file writing operations.
+     * Begin avro export
+     * @return number of rows written to avro file
      */
-    public void start() {
-      select.fetchSize(fetchSize).query(rs -> {
-
-        Etl.Builder builder = new Etl.Builder(schemaName, tableName, rs);
-        DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
+    public long start() {
+      return select.fetchSize(fetchSize).query(rs -> {
+        long count = 0;
+        Etl.Builder builder = new Etl.Builder(schemaName, tidy ? tidy(tableName) : tableName, rs);
+        try (DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(
+            new GenericDatumWriter<>(builder.schema()))
             .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
-            .create(builder.schema(), new File(filename));;
+            .create(builder.schema(), new File(filename))) {
+          log.debug("Using schema: \n" + builder.schema().toString(true));
+          while (rs.next()) {
+            count++;
+            writer.append(builder.read(rs));
+          }
+        }
+        return count;
+      });
+    }
+
+    /**
+     * Saves a table as multiple Avro files, returning a list of the files created.
+     * @param rowsPerFile how many rows per avro file
+     * @return map of files and their row counts
+     */
+    public Map<String, Long> start(long rowsPerFile) {
+      Map<String, Long> files = new LinkedHashMap<>();
+      select.fetchSize(fetchSize).query(rs -> {
+        int fileNo = 0;
+
+        File avroFile = new File(getFilename(fileNo));
+        String currentFile = avroFile.getAbsolutePath();
+
+        Etl.Builder builder = new Etl.Builder(schemaName, tidy ? tidy(tableName) : tableName, rs);
+        DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(
+            new GenericDatumWriter<>(builder.schema()))
+            .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
+            .create(builder.schema(), avroFile);
         log.debug("Using schema: \n" + builder.schema().toString(true));
 
+        long rowCount = 0;
         try {
           while (rs.next()) {
             writer.append(builder.read(rs));
+            if (rowsPerFile > 0 && (++rowCount > rowsPerFile)) {
+              writer.close();
+              avroFile = new File(getFilename(++fileNo));
+              files.put(currentFile, rowCount);
+              rowCount = 0;
+              currentFile = avroFile.getAbsolutePath();
+              writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
+                  .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
+                  .create(builder.schema(), avroFile);
+            }
           }
         } finally {
           if (writer != null) {
+            if (rowCount != 0) {
+              files.put(currentFile, rowCount);
+            }
             writer.close();
           }
         }
-
         return null;
       });
+      return files;
+    }
+
+    /*
+     Replaces %{PART} with the given file number, or appends it if %{PART} is not found
+     */
+    private String getFilename(int fileNo) {
+      StringBuilder path = new StringBuilder();
+      if (filename.contains("%{PART}")) {
+        path.append(filename.replace("%{PART}", String.format("%03d", fileNo)));
+      } else {
+        int avroAt = filename.indexOf(".avro");
+        if (avroAt > 0) {
+          path.append(filename, 0, avroAt).append(String.format("-%03d", fileNo)).append(".avro");
+        } else {
+          path.append(filename).append(String.format("-%03d", fileNo));
+        }
+      }
+      return path.toString();
+    }
+
+    private String tidy(final String name) {
+      return name
+          .replaceAll("[^a-zA-Z0-9]", " ")
+          .replaceAll("\\s", "_")
+          .trim()
+          .toLowerCase();
     }
 
     /**
@@ -257,6 +328,16 @@ public final class Etl {
       this.codec = codec;
       return this;
     }
+
+    /**
+     * Normalize/tidy table names (columns are always tidied)
+     */
+    @CheckReturnValue
+    public SaveAsAvro tidyNames() {
+      this.tidy = true;
+      return this;
+    }
+
   }
 
 
@@ -408,6 +489,32 @@ public final class Etl {
             precision[i] = 38;
             scale[i] = 9;
           }
+
+          // BigQuery restrictions:
+          // Types with the DECIMAL annotation may have at most a precision of 38 (total number of digits)
+          // and at most a scale of 9 (digits to the right of the decimal). The number of integer digits, which is the
+          // precision minus the scale, may be at most 29. For example, DECIMAL(38, 9) is supported because the
+          // precision is 38 and the scale is 9. In this example, the number of integer digits is 29.
+          // DECIMAL(38, 5) is not supported because it has a precision of 38 and a scale of 5.
+          // In this example, the number of integer digits is 33.
+
+          if (scale[i] > 0) {
+            if (scale[i] > 9) {
+              scale[i] = 9;
+            }
+            if ((precision[i] + scale[i]) > 38) {
+              precision[i] = 38;
+              scale[i] = 9;
+            }
+            if (precision[i] - scale[i] > 29) {
+              precision[i] = 29;
+            }
+          } else {
+            if (precision[i] > 29) {
+              precision[i] = 29;
+            }
+          }
+
         }
 
         names = SqlArgs.tidyColumnNames(names);
@@ -424,6 +531,7 @@ public final class Etl {
           //For each column in the table
           //Specify the schema in the AVRO file based on the column data type
           switch (types[i]) {
+            case Types.TINYINT:
             case Types.SMALLINT:
             case Types.INTEGER:
               fields.add(new org.apache.avro.Schema.Field(names[i],
@@ -546,6 +654,7 @@ public final class Etl {
 
       for (int i = 0; i < names.length; i++) {
         switch (types[i]) {
+          case Types.TINYINT:
           case Types.SMALLINT:
           case Types.INTEGER:
             record.put(names[i], r.getIntegerOrNull());
