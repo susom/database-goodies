@@ -215,43 +215,39 @@ public final class Etl {
     }
 
     /**
-     * Actually begin the database and file writing operations.
+     * Begin avro export
+     * @return number of rows written to avro file
      */
-    public void start() {
-      select.fetchSize(fetchSize).query(rs -> {
-
+    public long start() {
+      return select.fetchSize(fetchSize).query(rs -> {
+        long count = 0;
         Etl.Builder builder = new Etl.Builder(schemaName, tidy ? tidy(tableName) : tableName, rs);
-        DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
+        try (DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(
+            new GenericDatumWriter<>(builder.schema()))
             .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
-            .create(builder.schema(), new File(filename));
-        log.debug("Using schema: \n" + builder.schema().toString(true));
-
-        try {
+            .create(builder.schema(), new File(filename))) {
+          log.debug("Using schema: \n" + builder.schema().toString(true));
           while (rs.next()) {
+            count++;
             writer.append(builder.read(rs));
           }
-        } finally {
-          if (writer != null) {
-            writer.close();
-          }
         }
-
-        return null;
+        return count;
       });
     }
 
     /**
      * Saves a table as multiple Avro files, returning a list of the files created.
      * @param rowsPerFile how many rows per avro file
-     * @return paths to created avro files
+     * @return map of files and their row counts
      */
-    public List<String> start(long rowsPerFile) {
-      List<String> files = new ArrayList<>();
+    public Map<String, Long> start(long rowsPerFile) {
+      Map<String, Long> files = new LinkedHashMap<>();
       select.fetchSize(fetchSize).query(rs -> {
         int fileNo = 0;
 
         File avroFile = new File(getFilename(fileNo));
-        files.add(avroFile.getAbsolutePath());
+        String currentFile = avroFile.getAbsolutePath();
 
         Etl.Builder builder = new Etl.Builder(schemaName, tidy ? tidy(tableName) : tableName, rs);
         DataFileWriter<GenericRecord> writer = new DataFileWriter<GenericRecord>(
@@ -260,22 +256,26 @@ public final class Etl {
             .create(builder.schema(), avroFile);
         log.debug("Using schema: \n" + builder.schema().toString(true));
 
+        long rowCount = 0;
         try {
-          long rowCount = 0;
           while (rs.next()) {
             writer.append(builder.read(rs));
             if (rowsPerFile > 0 && (++rowCount > rowsPerFile)) {
               writer.close();
               avroFile = new File(getFilename(++fileNo));
+              files.put(currentFile, rowCount);
               rowCount = 0;
+              currentFile = avroFile.getAbsolutePath();
               writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
                   .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
                   .create(builder.schema(), avroFile);
-              files.add(avroFile.getAbsolutePath());
             }
           }
         } finally {
           if (writer != null) {
+            if (rowCount != 0) {
+              files.put(currentFile, rowCount);
+            }
             writer.close();
           }
         }
