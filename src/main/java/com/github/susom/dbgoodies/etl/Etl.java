@@ -564,6 +564,7 @@ public final class Etl {
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.DOUBLE)),
                       null, Field.NULL_VALUE));
               break;
+            case Types.DECIMAL:
             case Types.NUMERIC:
               //These are the columns with NUMBER and FLOAT data types in Oracle
               //Specific data types are:
@@ -611,6 +612,7 @@ public final class Etl {
               break;
             case Types.BINARY:
             case Types.VARBINARY:
+            case Types.LONGVARBINARY:
             case Types.BLOB:
               fields.add(new org.apache.avro.Schema.Field(names[i],
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.BYTES)),
@@ -645,6 +647,11 @@ public final class Etl {
                         org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
                         null, Field.NULL_VALUE));
               }
+              break;
+            case Types.BIT:
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.BOOLEAN)),
+                      null, Field.NULL_VALUE));
               break;
             default:
               throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
@@ -681,6 +688,7 @@ public final class Etl {
           case 101: // Oracle proprietary it seems
             record.put(names[i], r.getDoubleOrNull());
             break;
+          case Types.DECIMAL:
           case Types.NUMERIC:
             //These are the columns with NUMBER and FLOAT data types in Oracle
             //Specific data types are:
@@ -724,6 +732,7 @@ public final class Etl {
             break;
           case Types.BINARY:
           case Types.VARBINARY:
+          case Types.LONGVARBINARY:
           case Types.BLOB:
             byte[] bytesOrNull = r.getBlobBytesOrNull();
             record.put(names[i], bytesOrNull == null ? null : ByteBuffer.wrap(bytesOrNull));
@@ -748,6 +757,9 @@ public final class Etl {
             } else {
               record.put(names[i], r.getStringOrNull());
             }
+            break;
+          case Types.BIT:
+            record.put(names[i], r.getBooleanOrNull());
             break;
           default:
             throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
