@@ -43,6 +43,7 @@ import java.nio.ByteBuffer;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
@@ -624,11 +625,18 @@ public final class Etl {
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
                       null, Field.NULL_VALUE));
               break;
-            case Types.TIMESTAMP:
-              org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.LONG);
-              date.addProp(LogicalType.LOGICAL_TYPE_PROP, LogicalTypes.timestampMillis().getName());
+            case Types.DATE:
+              org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.INT);
+              date.addProp(LogicalType.LOGICAL_TYPE_PROP, LogicalTypes.date().getName());
               fields.add(new org.apache.avro.Schema.Field(names[i],
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), date),
+                      null, Field.NULL_VALUE));
+              break;
+            case Types.TIMESTAMP:
+              org.apache.avro.Schema timestamp = org.apache.avro.Schema.create(Type.LONG);
+              timestamp.addProp(LogicalType.LOGICAL_TYPE_PROP, LogicalTypes.timestampMillis().getName());
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), timestamp),
                       null, Field.NULL_VALUE));
               break;
             case Types.NVARCHAR:
@@ -741,9 +749,16 @@ public final class Etl {
           case Types.NCLOB:
             record.put(names[i], r.getClobStringOrNull());
             break;
-          case Types.TIMESTAMP:
+          case Types.DATE:
             Date dateOrNull = r.getDateOrNull();
-            record.put(names[i], dateOrNull == null ? null : dateOrNull.getTime());
+            record.put(names[i], dateOrNull == null ? null :
+                    Math.toIntExact(dateOrNull.toInstant()
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate().toEpochDay()));
+            break;
+          case Types.TIMESTAMP:
+            Date timeStampOrNull = r.getDateOrNull();
+            record.put(names[i], timeStampOrNull == null ? null : timeStampOrNull.getTime());
             break;
           case Types.NVARCHAR:
           case Types.VARCHAR:
