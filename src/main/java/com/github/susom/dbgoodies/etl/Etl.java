@@ -261,13 +261,18 @@ public final class Etl {
         log.debug("Using schema: \n" + builder.schema().toString(true));
 
         long rowCount = 0;
-        long tick = System.nanoTime();
+        long tick = System.currentTimeMillis();
+        long fileLength = 0L;
         try {
           while (rs.next()) {
             writer.append(builder.read(rs));
             rowCount++;
-            // File.length() is expensive, so we only check once-per-second
-            if (System.nanoTime() - tick > 1000000000 && avroFile.length() > bytesPerFile) {
+            // File.length() is expensive, so we only check once every second
+            if (System.currentTimeMillis() - tick > 1000) {
+              fileLength = avroFile.length();
+              tick = System.currentTimeMillis();
+            }
+            if (fileLength > bytesPerFile) {
               writer.close();
               if (fileNo == 0) {
                 currentFile = getFilename(fileNo);
@@ -282,7 +287,7 @@ public final class Etl {
               writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
                       .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
                       .create(builder.schema(), avroFile);
-              tick = System.nanoTime();
+              fileLength = 0L;
             }
           }
         } finally {
