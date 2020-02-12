@@ -262,32 +262,29 @@ public final class Etl {
 
         long rowCount = 0;
         long tick = System.currentTimeMillis();
-        long fileLength = 0L;
         try {
           while (rs.next()) {
             writer.append(builder.read(rs));
             rowCount++;
             // File.length() is expensive, so we only check once every second
             if (System.currentTimeMillis() - tick > 1000) {
-              fileLength = avroFile.length();
-              tick = System.currentTimeMillis();
-            }
-            if (fileLength > bytesPerFile) {
-              writer.close();
-              if (fileNo == 0) {
-                currentFile = getFilename(fileNo);
-                if (!avroFile.renameTo(new File(currentFile))) {
-                  throw new DatabaseException(String.format(Locale.ROOT, "Could not rename file %s", avroFile.getAbsolutePath()));
+              if (avroFile.length() > bytesPerFile) {
+                writer.close();
+                if (fileNo == 0) {
+                  currentFile = getFilename(fileNo);
+                  if (!avroFile.renameTo(new File(currentFile))) {
+                    throw new DatabaseException(String.format(Locale.ROOT, "Could not rename file %s", avroFile.getAbsolutePath()));
+                  }
                 }
+                avroFile = new File(getFilename(++fileNo));
+                files.put(currentFile, rowCount);
+                rowCount = 0;
+                currentFile = avroFile.getAbsolutePath();
+                writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
+                        .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
+                        .create(builder.schema(), avroFile);
               }
-              avroFile = new File(getFilename(++fileNo));
-              files.put(currentFile, rowCount);
-              rowCount = 0;
-              currentFile = avroFile.getAbsolutePath();
-              writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
-                      .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
-                      .create(builder.schema(), avroFile);
-              fileLength = 0L;
+              tick = System.currentTimeMillis();
             }
           }
         } finally {
