@@ -43,6 +43,7 @@ import java.nio.ByteBuffer;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
@@ -238,15 +239,18 @@ public final class Etl {
 
     /**
      * Saves a table as multiple Avro files, returning a list of the files created.
-     * @param rowsPerFile how many rows per avro file
+     * @param bytesPerFile how many bytes max per avro file (1MB minimum)
      * @return map of files and their row counts
      */
-    public Map<String, Long> start(long rowsPerFile) {
+    public Map<String, Long> start(long bytesPerFile) {
+      if (bytesPerFile < 1000000) {
+        return Collections.singletonMap(filename, start());
+      }
       Map<String, Long> files = new LinkedHashMap<>();
       select.fetchSize(fetchSize).query(rs -> {
         int fileNo = 0;
 
-        File avroFile = new File(getFilename(fileNo));
+        File avroFile = new File(filename);
         String currentFile = avroFile.getAbsolutePath();
 
         Etl.Builder builder = new Etl.Builder(schemaName, tidy ? tidy(tableName) : tableName, rs);
@@ -257,18 +261,30 @@ public final class Etl {
         log.debug("Using schema: \n" + builder.schema().toString(true));
 
         long rowCount = 0;
+        long tick = System.currentTimeMillis();
         try {
           while (rs.next()) {
             writer.append(builder.read(rs));
-            if (rowsPerFile > 0 && (++rowCount > rowsPerFile)) {
-              writer.close();
-              avroFile = new File(getFilename(++fileNo));
-              files.put(currentFile, rowCount);
-              rowCount = 0;
-              currentFile = avroFile.getAbsolutePath();
-              writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
-                  .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
-                  .create(builder.schema(), avroFile);
+            rowCount++;
+            // File.length() is expensive, so we only check once every second
+            if (System.currentTimeMillis() - tick > 1000) {
+              if (avroFile.length() > bytesPerFile) {
+                writer.close();
+                if (fileNo == 0) {
+                  currentFile = getFilename(fileNo);
+                  if (!avroFile.renameTo(new File(currentFile))) {
+                    throw new DatabaseException(String.format(Locale.ROOT, "Could not rename file %s", avroFile.getAbsolutePath()));
+                  }
+                }
+                avroFile = new File(getFilename(++fileNo));
+                files.put(currentFile, rowCount);
+                rowCount = 0;
+                currentFile = avroFile.getAbsolutePath();
+                writer = new DataFileWriter<GenericRecord>(new GenericDatumWriter<>(builder.schema()))
+                        .setCodec(codec == null ? CodecFactory.nullCodec() : codec)
+                        .create(builder.schema(), avroFile);
+              }
+              tick = System.currentTimeMillis();
             }
           }
         } finally {
@@ -285,19 +301,15 @@ public final class Etl {
     }
 
     /*
-     Replaces %{PART} with the given file number, or appends it if %{PART} is not found
+     Appends a given file number to a filename in the appropriate place
      */
     private String getFilename(int fileNo) {
       StringBuilder path = new StringBuilder();
-      if (filename.contains("%{PART}")) {
-        path.append(filename.replace("%{PART}", String.format("%03d", fileNo)));
+      int avroAt = filename.indexOf(".avro");
+      if (avroAt > 0) {
+        path.append(filename, 0, avroAt).append(String.format("-%03d", fileNo)).append(".avro");
       } else {
-        int avroAt = filename.indexOf(".avro");
-        if (avroAt > 0) {
-          path.append(filename, 0, avroAt).append(String.format("-%03d", fileNo)).append(".avro");
-        } else {
-          path.append(filename).append(String.format("-%03d", fileNo));
-        }
+        path.append(filename).append(String.format("-%03d", fileNo));
       }
       return path.toString();
     }
@@ -555,6 +567,7 @@ public final class Etl {
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.DOUBLE)),
                       null, Field.NULL_VALUE));
               break;
+            case Types.DECIMAL:
             case Types.NUMERIC:
               //These are the columns with NUMBER and FLOAT data types in Oracle
               //Specific data types are:
@@ -602,6 +615,7 @@ public final class Etl {
               break;
             case Types.BINARY:
             case Types.VARBINARY:
+            case Types.LONGVARBINARY:
             case Types.BLOB:
               fields.add(new org.apache.avro.Schema.Field(names[i],
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.BYTES)),
@@ -613,15 +627,24 @@ public final class Etl {
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
                       null, Field.NULL_VALUE));
               break;
-            case Types.TIMESTAMP:
-              org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.LONG);
-              date.addProp(LogicalType.LOGICAL_TYPE_PROP, LogicalTypes.timestampMillis().getName());
+            case Types.DATE:
+              org.apache.avro.Schema date = org.apache.avro.Schema.create(Type.INT);
+              date.addProp(LogicalType.LOGICAL_TYPE_PROP, LogicalTypes.date().getName());
               fields.add(new org.apache.avro.Schema.Field(names[i],
                       org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), date),
                       null, Field.NULL_VALUE));
               break;
+            case Types.TIMESTAMP:
+              org.apache.avro.Schema timestamp = org.apache.avro.Schema.create(Type.LONG);
+              timestamp.addProp(LogicalType.LOGICAL_TYPE_PROP, LogicalTypes.timestampMillis().getName());
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), timestamp),
+                      null, Field.NULL_VALUE));
+              break;
             case Types.NVARCHAR:
             case Types.VARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.LONGVARCHAR:
             case Types.CHAR:
             case Types.NCHAR:
               if (precision[i] >= 2147483647) {
@@ -634,6 +657,11 @@ public final class Etl {
                         org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.STRING)),
                         null, Field.NULL_VALUE));
               }
+              break;
+            case Types.BIT:
+              fields.add(new org.apache.avro.Schema.Field(names[i],
+                      org.apache.avro.Schema.createUnion(org.apache.avro.Schema.create(Type.NULL), org.apache.avro.Schema.create(Type.BOOLEAN)),
+                      null, Field.NULL_VALUE));
               break;
             default:
               throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
@@ -670,6 +698,7 @@ public final class Etl {
           case 101: // Oracle proprietary it seems
             record.put(names[i], r.getDoubleOrNull());
             break;
+          case Types.DECIMAL:
           case Types.NUMERIC:
             //These are the columns with NUMBER and FLOAT data types in Oracle
             //Specific data types are:
@@ -713,6 +742,7 @@ public final class Etl {
             break;
           case Types.BINARY:
           case Types.VARBINARY:
+          case Types.LONGVARBINARY:
           case Types.BLOB:
             byte[] bytesOrNull = r.getBlobBytesOrNull();
             record.put(names[i], bytesOrNull == null ? null : ByteBuffer.wrap(bytesOrNull));
@@ -721,12 +751,21 @@ public final class Etl {
           case Types.NCLOB:
             record.put(names[i], r.getClobStringOrNull());
             break;
-          case Types.TIMESTAMP:
+          case Types.DATE:
             Date dateOrNull = r.getDateOrNull();
-            record.put(names[i], dateOrNull == null ? null : dateOrNull.getTime());
+            record.put(names[i], dateOrNull == null ? null :
+                    Math.toIntExact(dateOrNull.toInstant()
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate().toEpochDay()));
+            break;
+          case Types.TIMESTAMP:
+            Date timeStampOrNull = r.getDateOrNull();
+            record.put(names[i], timeStampOrNull == null ? null : timeStampOrNull.getTime());
             break;
           case Types.NVARCHAR:
           case Types.VARCHAR:
+          case Types.LONGNVARCHAR:
+          case Types.LONGVARCHAR:
           case Types.CHAR:
           case Types.NCHAR:
             if (precision[i] >= 2147483647) {
@@ -735,6 +774,9 @@ public final class Etl {
             } else {
               record.put(names[i], r.getStringOrNull());
             }
+            break;
+          case Types.BIT:
+            record.put(names[i], r.getBooleanOrNull());
             break;
           default:
             throw new DatabaseException("Don't know how to deal with column type: " + types[i]);
