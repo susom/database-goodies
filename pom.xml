@@ -189,7 +189,7 @@
     <dependency>
       <groupId>com.github.susom</groupId>
       <artifactId>database</artifactId>
-      <version>3.0</version>
+      <version>3.1</version>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
