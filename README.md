@@ -22,6 +22,6 @@ The library is available in the public Maven repository:
 <dependency>
   <groupId>com.github.susom</groupId>
   <artifactId>database-goodies</artifactId>
-  <version>1.2</version>
+  <version>1.3</version>
 </dependency>
 ```
