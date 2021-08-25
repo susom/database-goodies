@@ -1,6 +1,6 @@
 ## Database Goodies
 
-[![Build Status](https://travis-ci.org/susom/database-goodies.svg?branch=master)](https://travis-ci.org/susom/database-goodies)
+[![Build Status](https://www.travis-ci.com/susom/database-goodies.svg?branch=master)](https://www.travis-ci.com/susom/database-goodies)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies)
 
 This project includes a variety of different things built on top of
@@ -22,6 +22,6 @@ The library is available in the public Maven repository:
 <dependency>
   <groupId>com.github.susom</groupId>
   <artifactId>database-goodies</artifactId>
-  <version>1.3</version>
+  <version>1.4</version>
 </dependency>
 ```
