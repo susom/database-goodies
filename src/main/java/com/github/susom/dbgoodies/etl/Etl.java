@@ -493,8 +493,8 @@ public final class Etl {
           //Oracle database returns -127 if scale is unspecified for the column
           //Therefore if the scale is unspecified for the column, set it to the appropriate value based on the table schema
           scale[i] = metadata.getScale(i + 1);
-          if (precision[i] == 126 && scale[i] == -127) {
-            //FLOAT(126) column in Oracle; therefore no scale specified in the column data type
+          if (scale[i] == -127) {
+            //FLOAT() column in Oracle; therefore no scale specified in the column data type
             //in GCP BigQuery, the NUMERIC data type is an exact numeric value with 38 digits of precision and 9 decimal digits of scale
             //Precision is the number of digits that the number contains
             //Scale is how many of these digits appear after the decimal point
