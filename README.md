@@ -1,6 +1,6 @@
 ## Database Goodies
 
-[![Build Status](https://www.travis-ci.com/susom/database-goodies.svg?branch=master)](https://www.travis-ci.com/susom/database-goodies)
+[![Build Status](https://app.travis-ci.com/susom/database-goodies.svg?branch=master)](https://app.travis-ci.com/susom/database-goodies)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.susom/database-goodies)
 
 This project includes a variety of different things built on top of
