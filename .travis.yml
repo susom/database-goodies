@@ -33,7 +33,6 @@ jobs:
     - stage: test
       addons:
         postgresql: "9.6"
-        srcclr: true
       before_script:
         - psql -U postgres -c "create user test with password 'test';"
         - psql -c 'create database test owner test;' -U postgres
