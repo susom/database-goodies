@@ -55,7 +55,7 @@
       <url>https://us-west1-maven.pkg.dev/som-rit-infrastructure-prod/public-maven</url>
     </repository>
   </distributionManagement>
-
+  
   <repositories>
     <repository>
       <id>artifact-registry</id>
