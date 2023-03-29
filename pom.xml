@@ -47,10 +47,6 @@
   </properties>
 
   <distributionManagement>
-    <snapshotRepository>
-      <id>io.cloudrepo.rit-public-snapshot</id>
-      <url>https://susom.mycloudrepo.io/repositories/rit-public-snapshot</url>
-    </snapshotRepository>
     <repository>
       <id>ossrh</id>
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
