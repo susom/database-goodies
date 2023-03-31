@@ -21,7 +21,7 @@ stages:
 before_install:
   # Ensure the settings we want to use are in place before running the default mvn install
   - cp ./travis/maven-settings.xml $HOME/.m2/settings.xml
-  - sed -i "s/2.0-SNAPSHOT/build-$TRAVIS_BUILD_NUMBER/" pom.xml
+  - sed -i "s/-SNAPSHOT/-build-$TRAVIS_BUILD_NUMBER/" pom.xml
   # Disable SourceClear except on scheduled builds
   - |
     if [ "$TRAVIS_EVENT_TYPE" != "cron" ]
@@ -50,7 +50,7 @@ jobs:
       script:
         - echo "deploy-snapshots"
         # When push to master occurs, all the versions should be -SNAPSHOTs and we will auto-deploy
-        - mvn --batch-mode -e -DskipTests=true deploy
+        - mvn --batch-mode -e -DskipTests=true deploy -DrepositoryId=artifact-registry -Durl=https://us-west1-maven.pkg.dev/som-rit-infrastructure-prod/public-maven
     - stage: release-check
       script:
         - echo "release-check"
