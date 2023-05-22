@@ -198,8 +198,8 @@
     <dependency>
       <groupId>com.github.susom</groupId>
       <artifactId>database</artifactId>
-      <version>4.123-build-01</version>
-      <!-- Testing Invalid Version -->
+      <version>4.1-build-2123</version>
+      <!-- Updated Valid Version -->
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
