@@ -198,7 +198,8 @@
     <dependency>
       <groupId>com.github.susom</groupId>
       <artifactId>database</artifactId>
-      <version>4.0</version>
+      <version>4.0</version> 
+      <!-- Checking the Version -->
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
