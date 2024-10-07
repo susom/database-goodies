@@ -48,12 +48,12 @@ jobs:
             export NOSCAN=1
           fi
 
-      - name: Install PostgreSQL 13
+      - name: Install PostgreSQL 14
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-13 postgresql-contrib-13
+          sudo apt-get install -y postgresql-14 postgresql-contrib
 
-      - name: Set up PostgreSQL 13
+      - name: Set up PostgreSQL 14
         run: |
           sudo service postgresql start
           sudo -u postgres psql -c "create user test with password 'test';"
