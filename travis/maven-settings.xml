@@ -1,7 +1,6 @@
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
 
   <mirrors>
     <mirror>
@@ -9,9 +8,10 @@
       <url>https://repo.maven.apache.org/maven2/</url>
     </mirror>
   </mirrors>
+
   <profiles>
     <profile>
-      <id>travis-ci</id>
+      <id>ci-build</id>
       <repositories>
         <repository>
           <id>artifact-registry</id>
@@ -35,39 +35,16 @@
           <url>https://repo.maven.apache.org/maven2</url>
         </pluginRepository>
       </pluginRepositories>
-
     </profile>
   </profiles>
 
   <activeProfiles>
-    <!--make the profile active all the time -->
-    <activeProfile>travis-ci</activeProfile>
+    <!-- Activate the CI profile -->
+    <activeProfile>ci-build</activeProfile>
   </activeProfiles>
 
   <servers>
-    <server>
-      <id>artifact-registry</id>
-      <configuration>
-        <httpConfiguration>
-          <get>
-            <usePreemptive>true</usePreemptive>
-          </get>
-          <head>
-            <usePreemptive>true</usePreemptive>
-          </head>
-          <put>
-            <params>
-              <property>
-                <name>http.protocol.expect-continue</name>
-                <value>false</value>
-              </property>
-            </params>
-          </put>
-        </httpConfiguration>
-      </configuration>
-      <username>_json_key_base64</username>
-      <password>${env.ARTIFACT_REGISTRY_KEY}</password>
-    </server>
+    <!-- Removed authentication credentials for Artifact Registry -->
     <server>
       <id>ossrh</id>
       <username>${env.OSSRH_USERNAME}</username>

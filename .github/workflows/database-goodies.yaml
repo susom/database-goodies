@@ -4,85 +4,88 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *" 
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:9.6
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd="pg_isready"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 8
-      uses: actions/setup-java@v3
-      with:
-        java-version: '8'
-        distribution: 'adopt'
+      - name: Set up Oracle JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: 8
+          distribution: 'zulu'
+          cache: maven
 
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+      - name: Copy Maven settings
+        run: |
+          mkdir -p $HOME/.m2
+          cp ./travis/maven-settings.xml $HOME/.m2/settings.xml
 
-    - name: Set up Maven settings
-      run: |
-        mkdir -p ~/.m2
-        cp ./travis/maven-settings.xml ~/.m2/settings.xml
-        sed -i "s/-SNAPSHOT/-github-build-${{ github.run_number }}/" pom.xml
+      - name: Update pom.xml version
+        run: |
+          sed -i "s/-SNAPSHOT/-build-${{ github.run_number }}/" pom.xml
 
-    - name: Create test database and user in PostgreSQL
-      run: |
-        psql -U postgres -c "create user test with password 'test';"
-        psql -c 'create database test owner test;' -U postgres
-      env:
-        PGPASSWORD: postgres
+      - name: Disable SourceClear except for cron jobs
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            export NOSCAN=1
+          fi
 
-    - name: Run tests
-      run: |
-        mvn -e test
-        mvn -e -Ppostgresql -Dpostgres.database.url=jdbc:postgresql:test \
-        -Dpostgres.database.user=test -Dpostgres.database.password=test verify
+      - name: Install PostgreSQL 9.6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-9.6 postgresql-contrib-9.6
 
-    - name: Print Surefire reports on failure
-      if: failure()
-      run: |
-        echo "\n=== SUREFIRE REPORTS ===\n"
-        for F in target/surefire-reports/*.txt; do echo $F; cat $F; echo; done
+      - name: Set up PostgreSQL 9.6
+        run: |
+          sudo service postgresql start
+          sudo -u postgres psql -c "create user test with password 'test';"
+          sudo -u postgres psql -c "create database test owner test;"
 
-  deploy_snapshots:
+      - name: Run tests
+        run: |
+          mvn -e test
+          mvn -e -Ppostgresql -Dpostgres.database.url=jdbc:postgresql:test -Dpostgres.database.user=test -Dpostgres.database.password=test verify
+
+      - name: Show test reports on failure
+        if: failure()
+        run: |
+          echo "\n=== SUREFIRE REPORTS ===\n"
+          for F in target/surefire-reports/*.txt; do echo $F; cat $F; echo; done
+
+  deploy-snapshots:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 8
-      uses: actions/setup-java@v3
-      with:
-        java-version: '8'
-        distribution: 'adopt'
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: 'som-rit-infrastructure-prod'
+          workload_identity_provider: 'projects/294515190965/locations/global/workloadIdentityPools/github/providers/susom-github'
+       
+      - name: Set up Oracle JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: 8
+          distribution: 'zulu'
+          cache: maven
 
-    - name: Set up Maven settings
-      run: |
-        mkdir -p ~/.m2
-        cp ./travis/maven-settings.xml ~/.m2/settings.xml
-        sed -i "s/-SNAPSHOT/-github-build-${{ github.run_number }}/" pom.xml
+      - name: Copy Maven settings
+        run: |
+          mkdir -p $HOME/.m2
+          cp ./travis/maven-settings.xml $HOME/.m2/settings.xml
 
-    - name: Deploy Snapshots
-      run: |
-        mvn --batch-mode -e -DskipTests=true deploy
+      - name: Update pom.xml version
+        run: |
+          sed -i "s/-SNAPSHOT/-build-${{ github.run_number }}/" pom.xml
+
+      - name: Deploy snapshots
+        run: |
+          mvn --batch-mode -e -DskipTests=true deploy
