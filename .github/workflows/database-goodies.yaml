@@ -48,16 +48,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-14 postgresql-contrib
 
-      - name: Configure PostgreSQL for md5 authentication
+      - name: Configure PostgreSQL for trust authentication
         run: |
-          sudo sed -i "s/peer/md5/" /etc/postgresql/14/main/pg_hba.conf
-          sudo sed -i "s/scram-sha-256/md5/" /etc/postgresql/14/main/pg_hba.conf
+          sudo sed -i "s/peer/trust/" /etc/postgresql/14/main/pg_hba.conf
+          sudo sed -i "s/scram-sha-256/trust/" /etc/postgresql/14/main/pg_hba.conf
           sudo service postgresql restart
 
       - name: Set up PostgreSQL
         run: |
           sudo service postgresql start
-          sudo -u postgres psql -c "create user test with password 'test';"
+          sudo -u postgres psql -c "create user test;"
           sudo -u postgres psql -c "create database test owner test;"
 
       - name: Run tests
