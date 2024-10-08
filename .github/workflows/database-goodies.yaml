@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Oracle JDK 8
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: 8
           distribution: 'zulu'
@@ -73,6 +73,7 @@ jobs:
 
   deploy-snapshots:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -91,7 +92,7 @@ jobs:
           echo "ACCESS_TOKEN=$(gcloud auth print-access-token)" >> $GITHUB_ENV
 
       - name: Set up Oracle JDK 8
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: 8
           distribution: 'zulu'
