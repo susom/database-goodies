@@ -28,11 +28,11 @@ jobs:
       - name: Copy Maven settings
         run: |
           mkdir -p $HOME/.m2
-          cp ./travis/maven-settings.xml $HOME/.m2/settings.xml
+          cp ./travis/actions-maven-settings.xml $HOME/.m2/settings.xml
 
       - name: Update pom.xml version
         run: |
-          sed -i "s/-SNAPSHOT/-build-${{ github.run_number }}/" pom.xml
+          sed -i "s/-SNAPSHOT/-github-build-${{ github.run_number }}/" pom.xml
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -100,11 +100,11 @@ jobs:
       - name: Copy Maven settings
         run: |
           mkdir -p $HOME/.m2
-          cp ./travis/maven-settings.xml $HOME/.m2/settings.xml
+          cp ./travis/actions-maven-settings.xml $HOME/.m2/settings.xml
 
       - name: Update pom.xml version
         run: |
-          sed -i "s/-SNAPSHOT/-build-${{ github.run_number }}/" pom.xml
+          sed -i "s/-SNAPSHOT/-github-build-${{ github.run_number }}/" pom.xml
 
       - name: Deploy snapshots
         run: |
