@@ -33,7 +33,7 @@ jobs:
       - name: Calculate and Echo Build Number
         id: calc-build-number
         run: |
-          BASE_BUILD_NUMBER=9  # Set this to the last Traivs build number
+          BASE_BUILD_NUMBER=2389  # Set this to the last Traivs build number
           NEW_BUILD_NUMBER=$((BASE_BUILD_NUMBER + ${{ github.run_number }}))
           echo "NEW_BUILD_NUMBER=$NEW_BUILD_NUMBER" >> $GITHUB_ENV
           echo "The new build number is: $NEW_BUILD_NUMBER"
@@ -89,7 +89,7 @@ jobs:
       - name: Calculate and Echo Build Number
         id: calc-build-number
         run: |
-          BASE_BUILD_NUMBER=9  # Set this to the last known build number
+          BASE_BUILD_NUMBER=2389  # Set this to the last Traivs build number
           NEW_BUILD_NUMBER=$((BASE_BUILD_NUMBER + ${{ github.run_number }}))
           echo "NEW_BUILD_NUMBER=$NEW_BUILD_NUMBER" >> $GITHUB_ENV
           echo "The new build number is: $NEW_BUILD_NUMBER"
