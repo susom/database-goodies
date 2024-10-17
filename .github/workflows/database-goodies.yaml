@@ -30,9 +30,17 @@ jobs:
           mkdir -p $HOME/.m2
           cp ./travis/actions-maven-settings.xml $HOME/.m2/settings.xml
 
+      - name: Calculate and Echo Build Number
+        id: calc-build-number
+        run: |
+          BASE_BUILD_NUMBER=9  # Set this to the last Traivs build number
+          NEW_BUILD_NUMBER=$((BASE_BUILD_NUMBER + ${{ github.run_number }}))
+          echo "NEW_BUILD_NUMBER=$NEW_BUILD_NUMBER" >> $GITHUB_ENV
+          echo "The new build number is: $NEW_BUILD_NUMBER"
+
       - name: Update pom.xml version
         run: |
-          sed -i "s/-SNAPSHOT/-github-build-${{ github.run_number }}/" pom.xml
+          sed -i "s/-SNAPSHOT/-build-${{ env.NEW_BUILD_NUMBER }}/" pom.xml
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -78,6 +86,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Calculate and Echo Build Number
+        id: calc-build-number
+        run: |
+          BASE_BUILD_NUMBER=9  # Set this to the last known build number
+          NEW_BUILD_NUMBER=$((BASE_BUILD_NUMBER + ${{ github.run_number }}))
+          echo "NEW_BUILD_NUMBER=$NEW_BUILD_NUMBER" >> $GITHUB_ENV
+          echo "The new build number is: $NEW_BUILD_NUMBER"
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -105,7 +121,7 @@ jobs:
 
       - name: Update pom.xml version
         run: |
-          sed -i "s/-SNAPSHOT/-github-build-${{ github.run_number }}/" pom.xml
+          sed -i "s/-SNAPSHOT/-build-${{ env.NEW_BUILD_NUMBER }}/" pom.xml
 
       - name: Deploy snapshots
         run: |
