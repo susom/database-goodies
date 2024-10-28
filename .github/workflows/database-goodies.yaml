@@ -73,7 +73,8 @@ jobs:
 
   deploy-snapshots:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.repository == 'susom/database-goodies' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
