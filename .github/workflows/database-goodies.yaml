@@ -34,15 +34,6 @@ jobs:
         run: |
           sed -i "s/-SNAPSHOT/-github-build-${{ github.run_number }}/" pom.xml
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          project_id: ${{ secrets.WORKLOAD_IDENTITY_PROJECT }}
-          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          create_credentials_file: true
-          export_environment_variables: true
-          cleanup_credentials: true
-
       - name: Install PostgreSQL 14
         run: |
           sudo apt-get update
