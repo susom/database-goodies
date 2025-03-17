@@ -62,6 +62,7 @@ jobs:
           echo "\n=== SUREFIRE REPORTS ===\n"
           for F in target/surefire-reports/*.txt; do echo $F; cat $F; echo; done
 
+  # deploys into Artifact Registry when code is pushed to the master branch of the 'susom/database-goodies' repository.
   deploy-snapshots:
     runs-on: ubuntu-latest
     if: github.repository == 'susom/database-goodies' && github.ref == 'refs/heads/master' && github.event_name == 'push'
